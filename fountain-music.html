@@ -3,86 +3,107 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Fountain Music Choreographer</title>
+<title>Fountain Choreographer</title>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   body { background: #000; overflow: hidden; font-family: 'Segoe UI', system-ui, sans-serif; }
   canvas { display: block; position: fixed; inset: 0; }
-
   #bar {
     position: fixed; top: 0; left: 0; right: 0; height: 48px;
-    display: flex; align-items: center; gap: 10px; padding: 0 16px;
-    background: rgba(6, 12, 28, 0.94);
-    border-bottom: 1px solid rgba(0, 120, 220, 0.22);
+    display: flex; align-items: center; gap: 8px; padding: 0 14px;
+    background: rgba(6,12,28,0.94); border-bottom: 1px solid rgba(0,100,200,0.22);
     backdrop-filter: blur(10px); z-index: 10; user-select: none;
   }
-  #bar h1 { font-size: 11px; letter-spacing: 3px; color: #4db8ff; text-transform: uppercase; white-space: nowrap; }
-  .sep { width: 1px; height: 26px; background: rgba(0,100,200,0.3); flex-shrink: 0; }
+  #bar h1 { font-size: 10px; letter-spacing: 3px; color: #4db8ff; text-transform: uppercase; white-space: nowrap; }
+  .sep { width: 1px; height: 26px; background: rgba(0,90,180,0.3); flex-shrink: 0; }
   .btn {
-    background: rgba(0,70,150,0.35); border: 1px solid rgba(0,130,255,0.4);
-    color: #90c8e8; padding: 4px 12px; border-radius: 4px; cursor: pointer;
-    font-size: 11px; white-space: nowrap; transition: background .15s, color .15s;
+    background: rgba(0,60,140,0.35); border: 1px solid rgba(0,120,255,0.38);
+    color: #88bedd; padding: 4px 11px; border-radius: 4px; cursor: pointer;
+    font-size: 11px; white-space: nowrap; transition: background .12s, color .12s;
   }
-  .btn:hover { background: rgba(0,110,220,0.55); color: #fff; }
+  .btn:hover { background: rgba(0,100,220,0.5); color: #fff; }
+  .btn.rec-on { background: rgba(180,0,0,0.5) !important; border-color: rgba(255,50,50,0.7) !important; color: #ffaaaa !important; }
   input[type=file] { display: none; }
-
-  #modeBtn {
-    font-size: 11px; font-weight: bold; letter-spacing: 2px;
-    padding: 5px 14px; border-radius: 4px; cursor: pointer; border: none;
-    transition: all .2s; white-space: nowrap;
+  .cg { display: flex; align-items: center; gap: 7px; }
+  .lbl { font-size: 10px; color: #4d88aa; white-space: nowrap; }
+  input[type=range] { width: 76px; cursor: pointer; accent-color: #0088ff; }
+  .ni {
+    width: 46px; background: rgba(0,12,38,0.7); border: 1px solid rgba(0,80,180,0.35);
+    color: #88bbdd; border-radius: 3px; padding: 3px 4px; font-size: 11px; text-align: center;
   }
-  #modeBtn.seq { background: rgba(0,80,180,0.55); border: 1px solid rgba(60,160,255,0.6); color: #88ccff; }
-  #modeBtn.fft { background: rgba(80,0,180,0.55); border: 1px solid rgba(160,80,255,0.6); color: #cc99ff; }
-
-  .ctrl-group { display: flex; align-items: center; gap: 8px; }
-  .ctrl-lbl { font-size: 11px; color: #5588aa; white-space: nowrap; }
-  input[type=range] { width: 80px; cursor: pointer; accent-color: #0088ff; }
-
-  #recBtn.recording {
-    background: rgba(180,0,0,0.55) !important;
-    border-color: rgba(255,60,60,0.7) !important;
-    color: #ffaaaa !important;
+  .si {
+    background: rgba(0,12,38,0.7); border: 1px solid rgba(0,80,180,0.35);
+    color: #88bbdd; border-radius: 3px; padding: 3px 4px; font-size: 11px;
   }
-
-  #info { margin-left: auto; font-size: 11px; color: rgba(100,165,215,0.55); white-space: nowrap; }
+  #modeSeg { display: flex; background: rgba(0,12,38,0.7); border: 1px solid rgba(0,70,160,0.3); border-radius: 5px; overflow: hidden; flex-shrink: 0; }
+  .ms { background: none; border: none; border-right: 1px solid rgba(0,55,120,0.3); color: rgba(70,130,190,0.65); padding: 5px 11px; cursor: pointer; font-size: 10px; font-weight: bold; letter-spacing: 1.5px; white-space: nowrap; transition: all .14s; }
+  .ms:last-child { border-right: none; }
+  .ms:hover { color: #cce; }
+  .ms.on[data-m="seq"]    { background: rgba(0,70,180,0.55); color: #88ccff; }
+  .ms.on[data-m="fft"]    { background: rgba(80,0,180,0.55); color: #cc99ff; }
+  .ms.on[data-m="grid"]   { background: rgba(0,120,80,0.55); color: #88ffcc; }
+  .ms.on[data-m="manual"] { background: rgba(160,80,0,0.55); color: #ffcc88; }
+  #info { margin-left: auto; font-size: 10px; color: rgba(90,150,200,0.5); white-space: nowrap; }
 </style>
 </head>
 <body>
 <canvas id="c"></canvas>
-
 <div id="bar">
   <h1>Fountain</h1>
   <div class="sep"></div>
-
-  <button id="modeBtn" class="seq">SEQ</button>
+  <div id="modeSeg">
+    <button class="ms on" data-m="seq">SEQ</button>
+    <button class="ms" data-m="fft">♫ FFT</button>
+    <button class="ms" data-m="grid">⊞ GRID</button>
+    <button class="ms" data-m="manual">◉ MANUAL</button>
+  </div>
   <div class="sep"></div>
 
-  <!-- Sequence controls -->
-  <div id="seqCtrl" class="ctrl-group">
+  <div id="seqCtrl" class="cg">
     <label class="btn" for="jsonIn">Load JSON</label>
     <input type="file" id="jsonIn" accept=".json">
     <button class="btn" id="seqBtn">⏸ Pause</button>
-    <input type="range" id="fpsRange" min="0.2" max="20" step="0.2" value="4" title="Playback speed">
-    <span id="fpsLbl" class="ctrl-lbl">4.0 fps</span>
+    <input type="range" id="fpsRange" min="0.2" max="20" step="0.2" value="4">
+    <span id="fpsLbl" class="lbl">4.0 fps</span>
   </div>
 
-  <!-- FFT controls (hidden by default) -->
-  <div id="fftCtrl" class="ctrl-group" style="display:none">
-    <label class="btn" for="audioIn">Load Song</label>
-    <input type="file" id="audioIn" accept="audio/*">
-    <button class="btn" id="audioBtn">▶ Play</button>
+  <div id="fftCtrl" class="cg" style="display:none">
+    <span class="lbl">Sensitivity</span>
+    <input type="range" id="sensRange" min="5" max="95" value="55">
+    <button class="btn" id="fftRecBtn">● Rec</button>
+  </div>
+
+  <div id="gridCtrl" class="cg" style="display:none">
+    <button class="btn" id="gridPlayBtn">▶ Play</button>
+    <input type="number" id="bpmIn" class="ni" value="120" min="40" max="240">
+    <span class="lbl">BPM</span>
+    <select id="stepsIn" class="si">
+      <option value="8">8 steps</option>
+      <option value="16" selected>16 steps</option>
+      <option value="32">32 steps</option>
+    </select>
+    <button class="btn" id="clearGridBtn">Clear</button>
+    <button class="btn" id="exportGridBtn">Export JSON</button>
+  </div>
+
+  <div id="manualCtrl" class="cg" style="display:none">
+    <button class="btn" id="manRecBtn">● Rec</button>
+    <button class="btn" id="clearManBtn">Clear All</button>
+  </div>
+
+  <div id="songCtrl" class="cg" style="display:none">
     <div class="sep"></div>
-    <span class="ctrl-lbl">Sensitivity</span>
-    <input type="range" id="sensRange" min="5" max="95" value="55" title="Higher = more solenoids fire">
-    <div class="sep"></div>
-    <button class="btn" id="recBtn" title="Record solenoid states to JSON">● Rec</button>
+    <label class="btn" for="songIn">♪ Song</label>
+    <input type="file" id="songIn" accept="audio/*">
+    <button class="btn" id="songBtn">▶</button>
+    <span id="songTime" class="lbl"></span>
   </div>
 
   <span id="info">demo sequence</span>
 </div>
 
 <script>
-// ─── Demo sequence ────────────────────────────────────────────────────────
+// ─── Demo + jet positions ─────────────────────────────────────────────────
 const DEMO = {
   fps: 4, loop: true,
   frames: [
@@ -104,8 +125,6 @@ const DEMO = {
     [0,0,0,0,0,1,1,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0],
   ]
 };
-
-// ─── Jet positions (normalized, matching Barrier Reef layout) ─────────────
 const JET_POS = [
   [-0.60,-0.58],[-0.18,-0.68],[0.24,-0.58],[0.58,-0.40],
   [-0.72,-0.08],[-0.32,-0.22],[0.10,-0.26],[0.54,-0.02],
@@ -115,40 +134,42 @@ const JET_POS = [
 // ─── Constants ────────────────────────────────────────────────────────────
 const N        = 12;
 const FFT_SIZE = 2048;
-const MIN_HZ   = 40;
-const MAX_HZ   = 16000;
-const SPEC_H   = 112;  // spectrum panel height at bottom
+const MIN_HZ   = 40, MAX_HZ = 16000;
+const REC_FPS  = 10;
+const PANEL    = { seq: 0, fft: 112, grid: 200, manual: 90 };
+const GRID_MAX = 32;
 
 // ─── State ────────────────────────────────────────────────────────────────
 const canvas = document.getElementById('c');
 const ctx    = canvas.getContext('2d');
-
-let mode = 'seq';  // 'seq' | 'fft'
+let mode = 'seq';
 
 // Sequence
-let frames     = DEMO.frames.map(norm);
-let frameIdx   = 0, fps = DEMO.fps, seqPlaying = true;
-let lastAdv    = performance.now(), seqName = 'demo sequence';
+let seqFrames = DEMO.frames.map(norm), seqIdx = 0, seqFPS = 4;
+let seqOn = true, seqLastAdv = performance.now(), seqName = 'demo sequence';
 
 // Audio / FFT
-let audioCtx   = null, analyser = null;
-let audioSrc   = null, audioBuffer = null;
+let audioCtx = null, analyser = null, audioSrc = null, audioBuffer = null;
 let audioStart = 0, audioPauseOff = 0, audioPlaying = false;
-let freqData   = null;
-let threshold  = 0.45;
-const bandE    = Array(N).fill(0);   // current band energies
-const audioSt  = Array(N).fill(0);  // FFT-driven solenoid states
+let freqData = null, threshold = 0.45, songName = '';
+const fftBandE = Array(N).fill(0);
+const fftSt    = Array(N).fill(0);
 
-// Visual
-const strength = Array(N).fill(0);  // animated 0→1 per jet
-let songName   = '';
+// Grid
+let gridCells = Array(N).fill(null).map(() => Array(GRID_MAX).fill(0));
+let gridSteps = 16, gridBPM = 120, gridOn = false, gridStep = 0, gridLastStep = 0;
+let gridDrag = false, gridDragVal = 0;
+
+// Manual
+const manSt = Array(N).fill(0);
 
 // Recording
-let recording       = false;
-let recordFrames    = [];
-const RECORD_FPS    = 10;
-let recordStart     = 0;
-let lastRecordFrame = -1;
+let fftRec = false, fftRecF = [], fftRecT = 0, fftRecLast = -1;
+let manRec = false, manRecF = [], manRecT = 0, manRecLast = -1;
+
+// Visual
+const strength = Array(N).fill(0);
+let prev = performance.now();
 
 // ─── Resize ───────────────────────────────────────────────────────────────
 function resize() { canvas.width = innerWidth; canvas.height = innerHeight; }
@@ -159,8 +180,17 @@ resize();
 function norm(f) {
   return (Array.from(f).concat(Array(N).fill(0))).slice(0, N).map(v => v ? 1 : 0);
 }
-function fmt(s) {
-  return `${Math.floor(s/60)}:${String(Math.floor(s%60)).padStart(2,'0')}`;
+function fmt(s) { return `${Math.floor(s/60)}:${String(Math.floor(s%60)).padStart(2,'0')}`; }
+function canvasXY(e) {
+  const r = canvas.getBoundingClientRect();
+  return [(e.clientX - r.left) * canvas.width / r.width,
+          (e.clientY - r.top) * canvas.height / r.height];
+}
+function dlJSON(data, name) {
+  const b = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const u = URL.createObjectURL(b);
+  const a = Object.assign(document.createElement('a'), { href: u, download: name });
+  a.click(); setTimeout(() => URL.revokeObjectURL(u), 2000);
 }
 
 // ─── Audio ────────────────────────────────────────────────────────────────
@@ -173,61 +203,48 @@ function initAudio() {
   analyser.connect(audioCtx.destination);
   freqData = new Uint8Array(analyser.frequencyBinCount);
 }
-
-function playAudio(offset) {
+function playAudio(off) {
   if (audioSrc) { try { audioSrc.stop(); } catch(e){} audioSrc.disconnect(); }
   audioSrc = audioCtx.createBufferSource();
   audioSrc.buffer = audioBuffer;
   audioSrc.loop = true;
   audioSrc.connect(analyser);
-  audioSrc.start(0, offset);
-  audioStart = audioCtx.currentTime - offset;
+  audioSrc.start(0, off);
+  audioStart = audioCtx.currentTime - off;
   audioPlaying = true;
-  document.getElementById('audioBtn').textContent = '⏸ Pause';
+  document.getElementById('songBtn').textContent = '⏸';
 }
-
 function pauseAudio() {
   if (!audioPlaying || !audioBuffer) return;
   audioPauseOff = (audioCtx.currentTime - audioStart) % audioBuffer.duration;
   try { audioSrc.stop(); } catch(e){}
-  audioSrc.disconnect();
-  audioSrc = null;
+  if (audioSrc) { audioSrc.disconnect(); audioSrc = null; }
   audioPlaying = false;
-  document.getElementById('audioBtn').textContent = '▶ Play';
+  document.getElementById('songBtn').textContent = '▶';
 }
-
-function getAudioTime() {
-  if (!audioBuffer) return 0;
-  if (!audioPlaying) return audioPauseOff;
-  return (audioCtx.currentTime - audioStart) % audioBuffer.duration;
-}
-
-function getBandEnergy(i) {
+function getBandE(i) {
   if (!freqData || !audioCtx) return 0;
-  const nyquist = audioCtx.sampleRate / 2;
-  const bins    = freqData.length;
-  const fLow  = MIN_HZ * Math.pow(MAX_HZ / MIN_HZ, i       / N);
-  const fHigh = MIN_HZ * Math.pow(MAX_HZ / MIN_HZ, (i + 1) / N);
-  const bLow  = Math.max(0, Math.floor(fLow  / nyquist * bins));
-  const bHigh = Math.min(bins - 1, Math.ceil(fHigh / nyquist * bins));
-  let sum = 0, count = Math.max(1, bHigh - bLow + 1);
-  for (let b = bLow; b <= bHigh; b++) sum += freqData[b];
-  return sum / count / 255;
+  const nyq = audioCtx.sampleRate / 2, bins = freqData.length;
+  const fL = MIN_HZ * Math.pow(MAX_HZ/MIN_HZ, i/N);
+  const fH = MIN_HZ * Math.pow(MAX_HZ/MIN_HZ, (i+1)/N);
+  const bL = Math.max(0, Math.floor(fL/nyq*bins));
+  const bH = Math.min(bins-1, Math.ceil(fH/nyq*bins));
+  let s = 0; for (let b = bL; b <= bH; b++) s += freqData[b];
+  return s / Math.max(1, bH-bL+1) / 255;
 }
 
 // ─── UI wiring ────────────────────────────────────────────────────────────
-document.getElementById('modeBtn').addEventListener('click', () => {
-  mode = mode === 'seq' ? 'fft' : 'seq';
-  updateModeUI();
+document.querySelectorAll('.ms').forEach(btn => {
+  btn.addEventListener('click', () => {
+    mode = btn.dataset.m;
+    document.querySelectorAll('.ms').forEach(b => b.classList.toggle('on', b === btn));
+    document.getElementById('seqCtrl').style.display    = mode === 'seq'    ? 'flex' : 'none';
+    document.getElementById('fftCtrl').style.display    = mode === 'fft'    ? 'flex' : 'none';
+    document.getElementById('gridCtrl').style.display   = mode === 'grid'   ? 'flex' : 'none';
+    document.getElementById('manualCtrl').style.display = mode === 'manual' ? 'flex' : 'none';
+    document.getElementById('songCtrl').style.display   = mode !== 'seq'    ? 'flex' : 'none';
+  });
 });
-
-function updateModeUI() {
-  const btn = document.getElementById('modeBtn');
-  btn.textContent = mode === 'seq' ? 'SEQ' : '♫ FFT';
-  btn.className   = mode === 'seq' ? 'seq' : 'fft';
-  document.getElementById('seqCtrl').style.display = mode === 'seq' ? 'flex' : 'none';
-  document.getElementById('fftCtrl').style.display = mode === 'fft' ? 'flex' : 'none';
-}
 
 document.getElementById('jsonIn').addEventListener('change', e => {
   const f = e.target.files[0]; if (!f) return;
@@ -235,359 +252,398 @@ document.getElementById('jsonIn').addEventListener('change', e => {
   r.onload = ev => {
     try {
       let raw = JSON.parse(ev.target.result);
-      if (Array.isArray(raw)) {
-        if (raw.length && !Array.isArray(raw[0])) raw = [raw];
-        frames = raw.map(norm); fps = 2;
-      } else {
-        frames = (raw.frames || [Array(N).fill(0)]).map(norm);
-        fps = parseFloat(raw.fps) || 2;
-      }
-      frameIdx = 0; seqName = f.name;
-      document.getElementById('fpsRange').value = fps;
-      document.getElementById('fpsLbl').textContent = fps.toFixed(1) + ' fps';
-      seqPlaying = true;
-      lastAdv = performance.now();
+      if (Array.isArray(raw)) { if (raw.length && !Array.isArray(raw[0])) raw = [raw]; seqFrames = raw.map(norm); seqFPS = 2; }
+      else { seqFrames = (raw.frames||[Array(N).fill(0)]).map(norm); seqFPS = parseFloat(raw.fps)||2; }
+      seqIdx = 0; seqName = f.name; seqOn = true; seqLastAdv = performance.now();
+      document.getElementById('fpsRange').value = seqFPS;
+      document.getElementById('fpsLbl').textContent = seqFPS.toFixed(1)+' fps';
       document.getElementById('seqBtn').textContent = '⏸ Pause';
-    } catch(err) { alert('Invalid JSON:\n' + err.message); }
+    } catch(err) { alert('Invalid JSON:\n'+err.message); }
   };
   r.readAsText(f);
 });
 
 document.getElementById('seqBtn').addEventListener('click', () => {
-  seqPlaying = !seqPlaying;
-  document.getElementById('seqBtn').textContent = seqPlaying ? '⏸ Pause' : '▶ Play';
-  if (seqPlaying) lastAdv = performance.now();
+  seqOn = !seqOn;
+  document.getElementById('seqBtn').textContent = seqOn ? '⏸ Pause' : '▶ Play';
+  if (seqOn) seqLastAdv = performance.now();
 });
-
 document.getElementById('fpsRange').addEventListener('input', function() {
-  fps = parseFloat(this.value);
-  document.getElementById('fpsLbl').textContent = fps.toFixed(1) + ' fps';
+  seqFPS = parseFloat(this.value);
+  document.getElementById('fpsLbl').textContent = seqFPS.toFixed(1)+' fps';
 });
 
-document.getElementById('audioIn').addEventListener('change', e => {
+document.getElementById('sensRange').addEventListener('input', function() {
+  threshold = 1 - parseFloat(this.value)/100 * 0.88 - 0.05;
+});
+
+document.getElementById('fftRecBtn').addEventListener('click', () => {
+  fftRec = !fftRec;
+  const btn = document.getElementById('fftRecBtn');
+  if (fftRec) { fftRecF = []; fftRecT = performance.now(); fftRecLast = -1; btn.textContent = '■ Stop'; btn.classList.add('rec-on'); }
+  else { btn.textContent = '● Rec'; btn.classList.remove('rec-on'); if (fftRecF.length) dlJSON({ fps: REC_FPS, loop: false, frames: fftRecF }, `fft-${Date.now()}.json`); }
+});
+
+document.getElementById('gridPlayBtn').addEventListener('click', () => {
+  gridOn = !gridOn;
+  document.getElementById('gridPlayBtn').textContent = gridOn ? '⏸ Pause' : '▶ Play';
+  if (gridOn) gridLastStep = performance.now();
+});
+document.getElementById('bpmIn').addEventListener('input', function() { gridBPM = Math.max(40, Math.min(240, parseInt(this.value)||120)); });
+document.getElementById('stepsIn').addEventListener('change', function() {
+  gridSteps = parseInt(this.value);
+  gridStep = Math.min(gridStep, gridSteps-1);
+});
+document.getElementById('clearGridBtn').addEventListener('click', () => {
+  gridCells = Array(N).fill(null).map(() => Array(GRID_MAX).fill(0));
+  gridStep = 0;
+});
+document.getElementById('exportGridBtn').addEventListener('click', () => {
+  const frames = [];
+  for (let s = 0; s < gridSteps; s++) frames.push(gridCells.map(row => row[s]));
+  dlJSON({ fps: gridBPM/60*4, loop: true, frames }, `grid-${Date.now()}.json`);
+});
+
+document.getElementById('manRecBtn').addEventListener('click', () => {
+  manRec = !manRec;
+  const btn = document.getElementById('manRecBtn');
+  if (manRec) { manRecF = []; manRecT = performance.now(); manRecLast = -1; btn.textContent = '■ Stop'; btn.classList.add('rec-on'); }
+  else { btn.textContent = '● Rec'; btn.classList.remove('rec-on'); if (manRecF.length) dlJSON({ fps: REC_FPS, loop: false, frames: manRecF }, `manual-${Date.now()}.json`); }
+});
+document.getElementById('clearManBtn').addEventListener('click', () => { for (let i=0;i<N;i++) manSt[i]=0; });
+
+document.getElementById('songIn').addEventListener('change', e => {
   const f = e.target.files[0]; if (!f) return;
   initAudio();
   if (audioCtx.state === 'suspended') audioCtx.resume();
   songName = f.name.replace(/\.[^.]+$/, '');
   const r = new FileReader();
-  r.onload = ev => {
-    audioCtx.decodeAudioData(ev.target.result.slice(0), buf => {
-      audioBuffer = buf;
-      audioPauseOff = 0;
-      playAudio(0);
-    }, err => alert('Could not decode audio: ' + err));
-  };
+  r.onload = ev => audioCtx.decodeAudioData(ev.target.result.slice(0), buf => {
+    audioBuffer = buf; audioPauseOff = 0; playAudio(0);
+  }, err => alert('Cannot decode audio: '+err));
   r.readAsArrayBuffer(f);
 });
-
-document.getElementById('audioBtn').addEventListener('click', () => {
+document.getElementById('songBtn').addEventListener('click', () => {
   initAudio();
   if (audioCtx.state === 'suspended') audioCtx.resume();
-  if (audioPlaying) pauseAudio(); else playAudio(audioPauseOff);
+  audioPlaying ? pauseAudio() : playAudio(audioPauseOff);
 });
 
-document.getElementById('sensRange').addEventListener('input', function() {
-  threshold = 1 - parseFloat(this.value) / 100 * 0.88 - 0.05;
-});
+// ─── Canvas interaction (grid paint + manual toggle) ──────────────────────
+function gridLP(W, H) {
+  const ph = PANEL.grid, gy = H - ph;
+  const lblW = 36, btmH = 20, gTop = gy, gH = ph - btmH;
+  const rH = gH / N, cW = (W - lblW) / gridSteps;
+  return { gy, lblW, gTop, gH, rH, cW };
+}
+function gridHit(mx, my, W, H) {
+  const { lblW, gTop, gH, rH, cW } = gridLP(W, H);
+  if (mx < lblW || my < gTop || my > gTop+gH) return null;
+  const col = Math.floor((mx-lblW)/cW), row = Math.floor((my-gTop)/rH);
+  return (col>=0 && col<gridSteps && row>=0 && row<N) ? {row,col} : null;
+}
+function manLP(W, H) {
+  const ph = PANEL.manual, py = H - ph, pad = 8, gap = 6, cols = 6, rows = 2;
+  const bW = (W - pad*2 - gap*(cols-1))/cols, bH = (ph - pad*2 - gap*(rows-1))/rows;
+  return { py, pad, gap, cols, bW, bH };
+}
+function manHit(mx, my, W, H) {
+  const { py, pad, gap, cols, bW, bH } = manLP(W, H);
+  if (my < py) return -1;
+  const col = Math.floor((mx-pad)/(bW+gap)), row = Math.floor((my-py-pad)/(bH+gap));
+  if (col<0||col>=cols||row<0||row>=2) return -1;
+  const i = row*cols+col; return i<N ? i : -1;
+}
 
-document.getElementById('recBtn').addEventListener('click', () => {
-  if (!recording) {
-    recording = true;
-    recordFrames = [];
-    recordStart = performance.now();
-    lastRecordFrame = -1;
-    const btn = document.getElementById('recBtn');
-    btn.textContent = '■ Stop';
-    btn.classList.add('recording');
-  } else {
-    recording = false;
-    const btn = document.getElementById('recBtn');
-    btn.textContent = '● Rec';
-    btn.classList.remove('recording');
-    if (recordFrames.length > 0) {
-      const data = { fps: RECORD_FPS, loop: false, frames: recordFrames };
-      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-      const url  = URL.createObjectURL(blob);
-      const a    = document.createElement('a');
-      a.href = url; a.download = `choreography-${Date.now()}.json`; a.click();
-      setTimeout(() => URL.revokeObjectURL(url), 2000);
-    }
+canvas.addEventListener('mousedown', e => {
+  const [mx,my] = canvasXY(e);
+  const { W, H } = { W: canvas.width, H: canvas.height };
+  if (mode==='grid') {
+    const cell = gridHit(mx, my, W, H);
+    if (cell) { gridDrag=true; gridDragVal=gridCells[cell.row][cell.col]?0:1; gridCells[cell.row][cell.col]=gridDragVal; }
+  } else if (mode==='manual') {
+    const i = manHit(mx, my, W, H);
+    if (i!==-1) manSt[i] = manSt[i]?0:1;
   }
 });
+canvas.addEventListener('mousemove', e => {
+  if (!gridDrag) return;
+  const [mx,my] = canvasXY(e);
+  const cell = gridHit(mx, my, canvas.width, canvas.height);
+  if (cell) gridCells[cell.row][cell.col] = gridDragVal;
+});
+canvas.addEventListener('mouseup',    () => { gridDrag=false; });
+canvas.addEventListener('mouseleave', () => { gridDrag=false; });
+
+canvas.addEventListener('touchstart', e => {
+  e.preventDefault();
+  const t = e.touches[0];
+  const [mx,my] = canvasXY({clientX:t.clientX,clientY:t.clientY});
+  const { W, H } = { W: canvas.width, H: canvas.height };
+  if (mode==='grid') {
+    const cell = gridHit(mx,my,W,H);
+    if (cell) { gridDrag=true; gridDragVal=gridCells[cell.row][cell.col]?0:1; gridCells[cell.row][cell.col]=gridDragVal; }
+  } else if (mode==='manual') {
+    const i = manHit(mx,my,W,H);
+    if (i!==-1) manSt[i]=manSt[i]?0:1;
+  }
+}, {passive:false});
+canvas.addEventListener('touchmove', e => {
+  if (!gridDrag) return; e.preventDefault();
+  const t = e.touches[0];
+  const [mx,my] = canvasXY({clientX:t.clientX,clientY:t.clientY});
+  const cell = gridHit(mx,my,canvas.width,canvas.height);
+  if (cell) gridCells[cell.row][cell.col]=gridDragVal;
+}, {passive:false});
+canvas.addEventListener('touchend', () => { gridDrag=false; });
 
 // ─── Layout ───────────────────────────────────────────────────────────────
 function layout() {
-  const W = canvas.width, H = canvas.height;
-  const BAR = 48;
-  const poolH = H - BAR - SPEC_H;
-  const RX = Math.min(W * 0.82 / 2.2, poolH * 0.88 / 2.15);
-  const RY = RX * 0.88;
-  return { W, H, BAR, RX, RY, cx: W / 2, cy: BAR + poolH / 2 };
+  const W = canvas.width, H = canvas.height, BAR = 48;
+  const ph = PANEL[mode]||0, poolH = H - BAR - ph;
+  const RX = Math.min(W*0.82/2.2, poolH*0.88/2.15), RY = RX*0.88;
+  return { W, H, BAR, ph, RX, RY, cx: W/2, cy: BAR+poolH/2 };
 }
-
-function blobPath(ctx, cx, cy, RX, RY) {
-  const p = (nx, ny) => [cx + nx * RX, cy + ny * RY];
+function blobPath(cx, cy, RX, RY) {
+  const p = (nx,ny) => [cx+nx*RX, cy+ny*RY];
   ctx.beginPath();
-  ctx.moveTo(...p(-0.15, -0.95));
-  ctx.bezierCurveTo(...p( 0.20,-1.08), ...p( 0.78,-0.70), ...p( 0.92,-0.18));
-  ctx.bezierCurveTo(...p( 1.07, 0.24), ...p( 0.80, 0.74), ...p( 0.38, 0.93));
-  ctx.bezierCurveTo(...p( 0.04, 1.07), ...p(-0.38, 0.90), ...p(-0.62, 0.62));
-  ctx.bezierCurveTo(...p(-0.96, 0.34), ...p(-1.06,-0.08), ...p(-0.88,-0.50));
-  ctx.bezierCurveTo(...p(-0.76,-0.84), ...p(-0.46,-1.00), ...p(-0.15,-0.95));
+  ctx.moveTo(...p(-0.15,-0.95));
+  ctx.bezierCurveTo(...p(0.20,-1.08),...p(0.78,-0.70),...p(0.92,-0.18));
+  ctx.bezierCurveTo(...p(1.07,0.24), ...p(0.80,0.74), ...p(0.38,0.93));
+  ctx.bezierCurveTo(...p(0.04,1.07), ...p(-0.38,0.90),...p(-0.62,0.62));
+  ctx.bezierCurveTo(...p(-0.96,0.34),...p(-1.06,-0.08),...p(-0.88,-0.50));
+  ctx.bezierCurveTo(...p(-0.76,-0.84),...p(-0.46,-1.00),...p(-0.15,-0.95));
   ctx.closePath();
 }
 
 // ─── Main loop ────────────────────────────────────────────────────────────
-let prev = performance.now();
-
 function tick(now) {
-  const dt = Math.min((now - prev) / 1000, 0.05);
-  prev = now;
-
+  const dt = Math.min((now-prev)/1000, 0.05); prev = now;
   let states;
 
-  if (mode === 'seq') {
-    if (seqPlaying && frames.length > 1 && now - lastAdv >= 1000 / fps) {
-      frameIdx = (frameIdx + 1) % frames.length;
-      lastAdv = now;
-    }
-    states = frames[frameIdx];
-    document.getElementById('info').textContent =
-      `${seqName} — frame ${frameIdx + 1}/${frames.length}`;
-  } else {
-    // FFT mode
+  if (mode==='seq') {
+    if (seqOn && seqFrames.length>1 && now-seqLastAdv >= 1000/seqFPS) { seqIdx=(seqIdx+1)%seqFrames.length; seqLastAdv=now; }
+    states = seqFrames[seqIdx];
+    document.getElementById('info').textContent = `${seqName} — frame ${seqIdx+1}/${seqFrames.length}`;
+
+  } else if (mode==='fft') {
     if (analyser && audioPlaying) {
       analyser.getByteFrequencyData(freqData);
-      for (let i = 0; i < N; i++) {
-        bandE[i] = getBandEnergy(i);
-        audioSt[i] = bandE[i] > threshold ? 1 : 0;
-      }
+      for (let i=0;i<N;i++) { fftBandE[i]=getBandE(i); fftSt[i]=fftBandE[i]>threshold?1:0; }
     }
-    states = audioSt;
-    const t = audioBuffer ? `${fmt(getAudioTime())} / ${fmt(audioBuffer.duration)}` : '--:-- / --:--';
-    document.getElementById('info').textContent =
-      (songName || 'no song') + (recording ? ' ● REC' : '') + '  ' + t;
+    states = fftSt;
+    const at = audioBuffer ? `${fmt(audioPlaying ? (audioCtx.currentTime-audioStart)%audioBuffer.duration : audioPauseOff)} / ${fmt(audioBuffer.duration)}` : '--:--';
+    document.getElementById('info').textContent = (songName||'no song') + '  ' + at + (fftRec?' ● REC':'');
+    document.getElementById('songTime').textContent = at;
+
+  } else if (mode==='grid') {
+    if (gridOn) {
+      const iv = 60000/gridBPM/4;
+      if (now-gridLastStep >= iv) { gridStep=(gridStep+1)%gridSteps; gridLastStep=now; }
+    }
+    states = Array(N).fill(0).map((_,i) => gridCells[i][gridStep]);
+    document.getElementById('info').textContent = `step ${gridStep+1}/${gridSteps}  ${gridBPM} BPM`;
+    if (audioBuffer) document.getElementById('songTime').textContent = audioPlaying ? `${fmt((audioCtx.currentTime-audioStart)%audioBuffer.duration)} / ${fmt(audioBuffer.duration)}` : '';
+
+  } else {
+    states = [...manSt];
+    document.getElementById('info').textContent = `open: ${manSt.filter(Boolean).length}/12` + (manRec?' ● REC':'');
   }
 
   // Record
-  if (recording) {
-    const fn = Math.floor((now - recordStart) / 1000 * RECORD_FPS);
-    if (fn > lastRecordFrame) { recordFrames.push([...states]); lastRecordFrame = fn; }
+  if (fftRec && mode==='fft') {
+    const fn = Math.floor((now-fftRecT)/1000*REC_FPS);
+    if (fn>fftRecLast) { fftRecF.push([...states]); fftRecLast=fn; }
+  }
+  if (manRec && mode==='manual') {
+    const fn = Math.floor((now-manRecT)/1000*REC_FPS);
+    if (fn>manRecLast) { manRecF.push([...states]); manRecLast=fn; }
   }
 
-  // Animate jet strengths
-  for (let i = 0; i < N; i++) {
-    const tgt = states[i] ? 1 : 0;
-    strength[i] = strength[i] < tgt
-      ? Math.min(1, strength[i] + 4 * dt)
-      : Math.max(0, strength[i] - 2.8 * dt);
+  // Animate strengths
+  for (let i=0;i<N;i++) {
+    const tg = states[i]?1:0;
+    strength[i] = strength[i]<tg ? Math.min(1,strength[i]+4*dt) : Math.max(0,strength[i]-2.8*dt);
   }
 
-  const L = layout();
-  render(states, now / 1000, L);
-
+  render(states, now/1000, layout());
   requestAnimationFrame(tick);
 }
 
 // ─── Render: pool ─────────────────────────────────────────────────────────
 function render(states, t, L) {
-  const { W, H, BAR, RX, RY, cx, cy } = L;
+  const { W, H, BAR, ph, RX, RY, cx, cy } = L;
 
-  // Background paving
-  ctx.fillStyle = '#c8c3ba';
-  ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = '#c8c3ba'; ctx.fillRect(0,0,W,H);
   ctx.strokeStyle = 'rgba(0,0,0,0.07)'; ctx.lineWidth = 1;
   const tile = 52;
-  for (let x = tile/2; x < W; x += tile) {
-    ctx.beginPath(); ctx.moveTo(x, BAR); ctx.lineTo(x, H - SPEC_H); ctx.stroke();
+  for (let x=tile/2; x<W; x+=tile) { ctx.beginPath(); ctx.moveTo(x,BAR); ctx.lineTo(x,H-ph); ctx.stroke(); }
+  for (let y=BAR+tile/2; y<H-ph; y+=tile) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke(); }
+
+  ctx.save(); ctx.shadowColor='rgba(0,15,50,0.5)'; ctx.shadowBlur=28; ctx.shadowOffsetX=5; ctx.shadowOffsetY=9;
+  blobPath(cx,cy,RX,RY); ctx.fillStyle='rgba(0,0,0,0.001)'; ctx.fill(); ctx.restore();
+
+  blobPath(cx,cy,RX*1.022,RY*1.022); ctx.fillStyle='#bbb5ab'; ctx.fill();
+
+  const wg = ctx.createRadialGradient(cx-RX*0.22,cy-RY*0.28,RX*0.04,cx+RX*0.05,cy+RY*0.05,Math.max(RX,RY)*1.05);
+  wg.addColorStop(0,'#45d4f0'); wg.addColorStop(0.3,'#18aad8'); wg.addColorStop(0.7,'#0882b5'); wg.addColorStop(1,'#04527a');
+  blobPath(cx,cy,RX,RY); ctx.fillStyle=wg; ctx.fill();
+
+  ctx.save(); blobPath(cx,cy,RX,RY); ctx.clip();
+  const avgE = mode==='fft' ? fftBandE.reduce((s,v)=>s+v,0)/N : 0.15;
+  ctx.lineWidth=1;
+  for (let yy=cy-RY-20; yy<cy+RY+20; yy+=20) {
+    const wave = Math.sin(t*0.35+yy*0.013)*9;
+    ctx.globalAlpha = 0.035+avgE*0.08+0.02*Math.sin(t*0.6+yy*0.02);
+    ctx.strokeStyle='#fff';
+    ctx.beginPath(); ctx.moveTo(cx-RX*1.2,yy+wave); ctx.quadraticCurveTo(cx,yy+Math.sin(t*0.5+yy*0.03)*4,cx+RX*1.2,yy-wave); ctx.stroke();
   }
-  for (let y = BAR + tile/2; y < H - SPEC_H; y += tile) {
-    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
-  }
+  ctx.globalAlpha=1;
 
-  // Pool shadow
-  ctx.save();
-  ctx.shadowColor = 'rgba(0,15,50,0.5)'; ctx.shadowBlur = 28;
-  ctx.shadowOffsetX = 5; ctx.shadowOffsetY = 9;
-  blobPath(ctx, cx, cy, RX, RY);
-  ctx.fillStyle = 'rgba(0,0,0,0.001)'; ctx.fill();
-  ctx.restore();
-
-  // Concrete surround
-  blobPath(ctx, cx, cy, RX * 1.022, RY * 1.022);
-  ctx.fillStyle = '#bbb5ab'; ctx.fill();
-
-  // Water
-  const wg = ctx.createRadialGradient(cx - RX*0.22, cy - RY*0.28, RX*0.04, cx + RX*0.05, cy + RY*0.05, Math.max(RX, RY)*1.05);
-  wg.addColorStop(0.0, '#45d4f0');
-  wg.addColorStop(0.3, '#18aad8');
-  wg.addColorStop(0.7, '#0882b5');
-  wg.addColorStop(1.0, '#04527a');
-  blobPath(ctx, cx, cy, RX, RY);
-  ctx.fillStyle = wg; ctx.fill();
-
-  // Clip for shimmer + ripples
-  ctx.save();
-  blobPath(ctx, cx, cy, RX, RY); ctx.clip();
-
-  // Shimmer (intensity scales with overall audio energy in FFT mode)
-  const avgE = mode === 'fft' ? bandE.reduce((s, v) => s + v, 0) / N : 0.15;
-  const shimmerAlpha = 0.035 + avgE * 0.08;
-  ctx.lineWidth = 1;
-  const shimStep = 20;
-  for (let yy = cy - RY - shimStep; yy < cy + RY + shimStep; yy += shimStep) {
-    const wave = Math.sin(t * 0.35 + yy * 0.013) * 9;
-    ctx.globalAlpha = shimmerAlpha + 0.02 * Math.sin(t * 0.6 + yy * 0.025);
-    ctx.strokeStyle = '#fff';
-    ctx.beginPath();
-    ctx.moveTo(cx - RX * 1.2, yy + wave);
-    ctx.quadraticCurveTo(cx, yy + Math.sin(t * 0.5 + yy * 0.03) * 4, cx + RX * 1.2, yy - wave);
-    ctx.stroke();
-  }
-  ctx.globalAlpha = 1;
-
-  // Ripple rings
-  const maxR = Math.min(RX, RY) * 0.24;
-  const RINGS = 5;
-  for (let i = 0; i < N; i++) {
-    const str = strength[i]; if (str < 0.01) continue;
-    const jx = cx + JET_POS[i][0] * RX;
-    const jy = cy + JET_POS[i][1] * RY;
-    for (let k = 0; k < RINGS; k++) {
-      const phase = ((t * 1.3 + k / RINGS + i * 0.07) % 1);
-      ctx.globalAlpha = (1 - phase) * (1 - phase) * 0.65 * str;
-      ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5;
-      ctx.beginPath(); ctx.arc(jx, jy, Math.max(1, phase * maxR), 0, Math.PI * 2); ctx.stroke();
+  const maxR=Math.min(RX,RY)*0.24, RINGS=5;
+  for (let i=0;i<N;i++) {
+    const str=strength[i]; if(str<0.01) continue;
+    const jx=cx+JET_POS[i][0]*RX, jy=cy+JET_POS[i][1]*RY;
+    for (let k=0;k<RINGS;k++) {
+      const ph2=((t*1.3+k/RINGS+i*0.07)%1);
+      ctx.globalAlpha=(1-ph2)*(1-ph2)*0.65*str; ctx.strokeStyle='#fff'; ctx.lineWidth=1.5;
+      ctx.beginPath(); ctx.arc(jx,jy,Math.max(1,ph2*maxR),0,Math.PI*2); ctx.stroke();
     }
   }
-  ctx.globalAlpha = 1;
-  ctx.restore();
+  ctx.globalAlpha=1; ctx.restore();
 
-  // Pool edge
-  blobPath(ctx, cx, cy, RX, RY);
-  ctx.strokeStyle = 'rgba(255,255,255,0.7)'; ctx.lineWidth = 3; ctx.stroke();
-  blobPath(ctx, cx, cy, RX, RY);
-  ctx.strokeStyle = 'rgba(0,40,90,0.18)'; ctx.lineWidth = 1; ctx.stroke();
+  blobPath(cx,cy,RX,RY); ctx.strokeStyle='rgba(255,255,255,0.7)'; ctx.lineWidth=3; ctx.stroke();
+  blobPath(cx,cy,RX,RY); ctx.strokeStyle='rgba(0,40,90,0.18)'; ctx.lineWidth=1; ctx.stroke();
 
-  // Nozzles
-  const nr = Math.max(5, Math.min(RX, RY) * 0.038);
-  for (let i = 0; i < N; i++) {
-    const str = strength[i];
-    const jx  = cx + JET_POS[i][0] * RX;
-    const jy  = cy + JET_POS[i][1] * RY;
-    if (str > 0.01) {
-      ctx.save();
-      ctx.shadowColor = 'rgba(200,245,255,0.95)'; ctx.shadowBlur = nr * 2.5 * str;
-      ctx.fillStyle = `rgba(255,255,255,${0.85 * str})`;
-      ctx.beginPath(); ctx.arc(jx, jy, nr * (0.55 + str * 0.55), 0, Math.PI * 2); ctx.fill();
-      ctx.restore();
+  const nr = Math.max(5, Math.min(RX,RY)*0.038);
+  for (let i=0;i<N;i++) {
+    const str=strength[i], jx=cx+JET_POS[i][0]*RX, jy=cy+JET_POS[i][1]*RY;
+    if (str>0.01) {
+      ctx.save(); ctx.shadowColor='rgba(200,245,255,0.95)'; ctx.shadowBlur=nr*2.5*str;
+      ctx.fillStyle=`rgba(255,255,255,${0.85*str})`; ctx.beginPath(); ctx.arc(jx,jy,nr*(0.55+str*0.55),0,Math.PI*2); ctx.fill(); ctx.restore();
     }
-    ctx.fillStyle = str > 0.5 ? '#fff' : 'rgba(15,45,80,0.85)';
-    ctx.strokeStyle = 'rgba(255,255,255,0.4)'; ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.arc(jx, jy, nr * 0.42, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-    const fs = Math.max(8, Math.round(nr * 1.15));
-    ctx.font = `bold ${fs}px monospace`; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
-    ctx.fillStyle = str > 0.45 ? 'rgba(255,255,255,0.95)' : 'rgba(210,230,255,0.75)';
-    ctx.fillText(String(i + 1).padStart(2, '0'), jx, jy + nr * 0.55 + 2);
+    ctx.fillStyle=str>0.5?'#fff':'rgba(15,45,80,0.85)'; ctx.strokeStyle='rgba(255,255,255,0.4)'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.arc(jx,jy,nr*0.42,0,Math.PI*2); ctx.fill(); ctx.stroke();
+    const fs=Math.max(8,Math.round(nr*1.15));
+    ctx.font=`bold ${fs}px monospace`; ctx.textAlign='center'; ctx.textBaseline='top';
+    ctx.fillStyle=str>0.45?'rgba(255,255,255,0.95)':'rgba(210,230,255,0.75)';
+    ctx.fillText(String(i+1).padStart(2,'0'),jx,jy+nr*0.55+2);
   }
 
-  // Draw spectrum panel
-  drawSpectrum(states, t, W, H);
+  if (mode==='fft')    drawSpectrum(t, W, H, ph);
+  else if (mode==='grid')   drawGrid(W, H);
+  else if (mode==='manual') drawManual(W, H, ph);
 }
 
-// ─── Render: spectrum analyser ─────────────────────────────────────────────
-function drawSpectrum(states, t, W, H) {
-  const sy  = H - SPEC_H;
-  const pad = 18;
-  const barW   = (W - pad * 2) / N;
-  const barGap = barW * 0.18;
-  const bw     = barW - barGap;
-  const maxBH  = SPEC_H - 34;  // bar max height, leave room for labels
-
-  // Panel background
-  ctx.fillStyle = 'rgba(1,4,14,0.92)';
-  ctx.fillRect(0, sy, W, SPEC_H);
-
-  // Top border
-  ctx.strokeStyle = 'rgba(0,70,140,0.55)'; ctx.lineWidth = 1;
-  ctx.beginPath(); ctx.moveTo(0, sy); ctx.lineTo(W, sy); ctx.stroke();
-
-  // Subtle grid lines at 25 / 50 / 75 %
-  ctx.lineWidth = 1;
-  for (const p of [0.25, 0.5, 0.75]) {
-    const gy = sy + 6 + maxBH * (1 - p);
-    ctx.strokeStyle = `rgba(255,255,255,${p === 0.5 ? 0.07 : 0.04})`;
-    ctx.beginPath(); ctx.moveTo(pad, gy); ctx.lineTo(W - pad, gy); ctx.stroke();
+// ─── Spectrum panel ────────────────────────────────────────────────────────
+function drawSpectrum(t, W, H, ph) {
+  const sy=H-ph, pad=18, bW=(W-pad*2)/N, bGap=bW*0.18, bw=bW-bGap, maxBH=ph-34;
+  ctx.fillStyle='rgba(1,4,14,0.92)'; ctx.fillRect(0,sy,W,ph);
+  ctx.strokeStyle='rgba(0,70,140,0.55)'; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(0,sy); ctx.lineTo(W,sy); ctx.stroke();
+  for (const p of [0.25,0.5,0.75]) {
+    const gy=sy+6+maxBH*(1-p); ctx.strokeStyle=`rgba(255,255,255,${p===0.5?0.07:0.04})`; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(pad,gy); ctx.lineTo(W-pad,gy); ctx.stroke();
   }
-
-  // Threshold line (dashed yellow)
-  const threshY = sy + 6 + maxBH * (1 - threshold);
-  ctx.setLineDash([5, 5]);
-  ctx.strokeStyle = 'rgba(255,230,60,0.7)'; ctx.lineWidth = 1.5;
-  ctx.beginPath(); ctx.moveTo(pad, threshY); ctx.lineTo(W - pad, threshY); ctx.stroke();
-  ctx.setLineDash([]);
-  ctx.fillStyle = 'rgba(255,220,50,0.6)'; ctx.font = '9px monospace';
-  ctx.textAlign = 'left'; ctx.textBaseline = 'bottom';
-  ctx.fillText('threshold', pad + 3, threshY - 2);
-
-  // Bars
-  for (let i = 0; i < N; i++) {
-    const bx  = pad + i * barW + barGap / 2;
-    const e   = mode === 'fft' ? bandE[i] : (states[i] ? 0.8 : 0.05);
-    const h   = Math.max(2, e * maxBH);
-    const act = e > threshold;
-    const by  = sy + 6;
-
-    // Bar trough
-    ctx.fillStyle = 'rgba(0,18,45,0.8)';
-    ctx.fillRect(bx, by, bw, maxBH);
-
-    // Bar fill
-    const bg = ctx.createLinearGradient(bx, by + maxBH - h, bx, by + maxBH);
-    if (act) {
-      bg.addColorStop(0, '#99eeff');
-      bg.addColorStop(0.5, '#0099dd');
-      bg.addColorStop(1, '#002255');
-    } else {
-      bg.addColorStop(0, '#0077aa');
-      bg.addColorStop(1, '#001a33');
-    }
-    if (act) { ctx.save(); ctx.shadowColor = '#33ccff'; ctx.shadowBlur = 8; }
-    ctx.fillStyle = bg;
-    ctx.fillRect(bx, by + maxBH - h, bw, h);
+  const thY=sy+6+maxBH*(1-threshold);
+  ctx.setLineDash([5,5]); ctx.strokeStyle='rgba(255,225,50,0.65)'; ctx.lineWidth=1.5;
+  ctx.beginPath(); ctx.moveTo(pad,thY); ctx.lineTo(W-pad,thY); ctx.stroke(); ctx.setLineDash([]);
+  for (let i=0;i<N;i++) {
+    const bx=pad+i*bW+bGap/2, e=fftBandE[i], h=Math.max(2,e*maxBH), act=e>threshold;
+    ctx.fillStyle='rgba(0,18,45,0.8)'; ctx.fillRect(bx,sy+6,bw,maxBH);
+    const bg=ctx.createLinearGradient(bx,sy+6+maxBH-h,bx,sy+6+maxBH);
+    bg.addColorStop(0,act?'#99eeff':'#0077aa'); bg.addColorStop(1,act?'#0066aa':'#001a33');
+    if (act){ctx.save();ctx.shadowColor='#33ccff';ctx.shadowBlur=8;}
+    ctx.fillStyle=bg; ctx.fillRect(bx,sy+6+maxBH-h,bw,h);
     if (act) ctx.restore();
+    ctx.font='9px monospace'; ctx.textAlign='center'; ctx.textBaseline='top';
+    ctx.fillStyle=act?'#88ddff':'rgba(50,100,150,0.6)';
+    ctx.fillText(String(i+1).padStart(2,'0'),bx+bw/2,sy+6+maxBH+4);
+  }
+  const secs=[[[0,2],'Bass'],[[3,5],'Low Mid'],[[6,7],'Mid'],[[8,9],'Hi Mid'],[[10,11],'Treble']];
+  ctx.fillStyle='rgba(70,120,170,0.4)'; ctx.font='9px sans-serif'; ctx.textBaseline='bottom';
+  for (const [[s,e],label] of secs) {
+    ctx.textAlign='center'; ctx.fillText(label,(pad+s*bW+pad+(e+1)*bW)/2,H-1);
+  }
+}
 
-    // Number below bar
-    ctx.font = '9px monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
-    ctx.fillStyle = act ? '#88ddff' : 'rgba(60,110,160,0.7)';
-    ctx.fillText(String(i + 1).padStart(2, '0'), bx + bw / 2, by + maxBH + 4);
+// ─── Grid panel ────────────────────────────────────────────────────────────
+function drawGrid(W, H) {
+  const { gy, lblW, gTop, gH, rH, cW } = gridLP(W, H);
+  ctx.fillStyle='rgba(1,4,14,0.92)'; ctx.fillRect(0,gy,W,H-gy);
+  ctx.strokeStyle='rgba(0,70,140,0.5)'; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(0,gy); ctx.lineTo(W,gy); ctx.stroke();
+
+  // Beat group backgrounds
+  for (let b=0; b<Math.ceil(gridSteps/4); b++) {
+    const bx=lblW+b*4*cW, bw=Math.min(4,gridSteps-b*4)*cW;
+    ctx.fillStyle=b%2===0?'rgba(0,22,52,0.7)':'rgba(0,14,38,0.7)';
+    ctx.fillRect(bx,gTop,bw,gH);
   }
 
-  // Section labels at very bottom
-  const sections = [
-    [0,  2,  'Bass'],
-    [3,  5,  'Low Mid'],
-    [6,  7,  'Mid'],
-    [8,  9,  'Hi Mid'],
-    [10, 11, 'Treble'],
-  ];
-  ctx.font = '9px sans-serif'; ctx.textBaseline = 'bottom'; ctx.fillStyle = 'rgba(80,130,180,0.45)';
-  for (const [s, e, label] of sections) {
-    const x1 = pad + s * barW, x2 = pad + (e + 1) * barW;
-    ctx.textAlign = 'center';
-    ctx.fillText(label, (x1 + x2) / 2, H - 1);
+  // Playhead column highlight
+  if (gridOn) { ctx.fillStyle='rgba(255,255,160,0.06)'; ctx.fillRect(lblW+gridStep*cW,gTop,cW,gH); }
+
+  // Row separators
+  for (let r=0;r<=N;r++) {
+    ctx.strokeStyle='rgba(0,40,90,0.5)'; ctx.lineWidth=0.5;
+    ctx.beginPath(); ctx.moveTo(lblW,gTop+r*rH); ctx.lineTo(W,gTop+r*rH); ctx.stroke();
+  }
+  // Column separators
+  for (let s=0;s<=gridSteps;s++) {
+    ctx.strokeStyle=s%4===0?'rgba(0,80,150,0.55)':'rgba(0,38,78,0.3)';
+    ctx.lineWidth=s%4===0?1:0.5;
+    ctx.beginPath(); ctx.moveTo(lblW+s*cW,gTop); ctx.lineTo(lblW+s*cW,gTop+gH); ctx.stroke();
   }
 
-  // FFT mode: freq labels on every 4th bar
-  if (mode === 'fft') {
-    ctx.fillStyle = 'rgba(60,100,150,0.5)'; ctx.font = '8px monospace';
-    ctx.textBaseline = 'bottom';
-    for (let i = 0; i < N; i += 3) {
-      const hz = MIN_HZ * Math.pow(MAX_HZ / MIN_HZ, i / N);
-      const bx = pad + i * barW + barGap / 2;
-      ctx.textAlign = 'left';
-      ctx.fillText(hz < 1000 ? `${Math.round(hz)}Hz` : `${(hz/1000).toFixed(1)}k`, bx, H - 14);
+  // Cells + row labels
+  for (let r=0;r<N;r++) {
+    ctx.fillStyle='rgba(70,120,175,0.65)'; ctx.font='9px monospace'; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText(String(r+1).padStart(2,'0'),lblW/2,gTop+r*rH+rH/2);
+    for (let s=0;s<gridSteps;s++) {
+      if (!gridCells[r][s]) continue;
+      const act=gridOn && s===gridStep;
+      const bx=lblW+s*cW+2, by=gTop+r*rH+2, bw=cW-4, bh=rH-4;
+      if (act){ctx.save();ctx.shadowColor='#00ffcc';ctx.shadowBlur=10;}
+      ctx.fillStyle=act?'#88ffee':'#0099cc';
+      ctx.fillRect(bx,by,bw,bh);
+      if (act) ctx.restore();
     }
+  }
+
+  // Step number labels
+  ctx.fillStyle='rgba(55,95,145,0.6)'; ctx.font='9px monospace'; ctx.textBaseline='top'; ctx.textAlign='center';
+  for (let s=0;s<gridSteps;s+=4) ctx.fillText(String(s+1),lblW+(s+0.5)*cW,gTop+gH+3);
+
+  // Playhead arrow
+  if (gridOn) {
+    const px=lblW+(gridStep+0.5)*cW;
+    ctx.fillStyle='rgba(255,255,100,0.85)';
+    ctx.beginPath(); ctx.moveTo(px-5,gy+3); ctx.lineTo(px+5,gy+3); ctx.lineTo(px,gTop); ctx.closePath(); ctx.fill();
+  }
+}
+
+// ─── Manual panel ──────────────────────────────────────────────────────────
+function drawManual(W, H, ph) {
+  const { py, pad, gap, cols, bW, bH } = manLP(W, H, ph);
+  ctx.fillStyle='rgba(1,4,14,0.92)'; ctx.fillRect(0,py,W,ph);
+  ctx.strokeStyle='rgba(0,70,140,0.5)'; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(0,py); ctx.lineTo(W,py); ctx.stroke();
+
+  for (let i=0;i<N;i++) {
+    const row=Math.floor(i/cols), col=i%cols;
+    const bx=pad+col*(bW+gap), by=py+pad+row*(bH+gap);
+    const on=!!manSt[i], str=strength[i];
+
+    if (on){ctx.save();ctx.shadowColor='rgba(0,180,255,0.8)';ctx.shadowBlur=14;}
+    ctx.fillStyle=on?`rgba(0,${Math.round(110+str*80)},${Math.round(190+str*65)},0.88)`:'rgba(12,28,68,0.88)';
+    ctx.fillRect(bx,by,bW,bH);
+    if (on) ctx.restore();
+
+    ctx.strokeStyle=on?'rgba(0,210,255,0.8)':'rgba(25,60,120,0.5)'; ctx.lineWidth=on?1.5:1;
+    ctx.strokeRect(bx,by,bW,bH);
+
+    const fs=Math.max(11,Math.min(22,bH*0.45));
+    ctx.font=`bold ${fs}px monospace`; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillStyle=on?'#ffffff':'rgba(85,135,190,0.65)';
+    ctx.fillText(`S${String(i+1).padStart(2,'0')}`,bx+bW/2,by+bH/2);
   }
 }
 
