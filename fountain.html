@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Solenoid Fountain Simulator</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #000; overflow: hidden; font-family: 'Segoe UI', system-ui, sans-serif; }
+  canvas { display: block; position: fixed; inset: 0; }
+
+  #bar {
+    position: fixed; top: 0; left: 0; right: 0; height: 48px;
+    display: flex; align-items: center; gap: 12px; padding: 0 20px;
+    background: rgba(2, 8, 22, 0.9);
+    border-bottom: 1px solid rgba(0, 120, 220, 0.25);
+    backdrop-filter: blur(10px);
+    z-index: 10; user-select: none;
+  }
+  #bar h1 { font-size: 11px; letter-spacing: 3px; color: #4db8ff; text-transform: uppercase; white-space: nowrap; }
+  .sep { width: 1px; height: 24px; background: rgba(0, 120, 220, 0.3); flex-shrink: 0; }
+  .btn {
+    background: rgba(0, 80, 160, 0.35); border: 1px solid rgba(0, 140, 255, 0.4);
+    color: #9acfe8; padding: 5px 14px; border-radius: 4px; cursor: pointer;
+    font-size: 12px; white-space: nowrap; transition: background .15s, color .15s;
+  }
+  .btn:hover { background: rgba(0, 120, 220, 0.55); color: #fff; }
+  input[type=file] { display: none; }
+  #fpsLabel { font-size: 12px; color: #5599bb; white-space: nowrap; min-width: 46px; }
+  input[type=range] { width: 90px; cursor: pointer; accent-color: #0088ff; }
+  #info { margin-left: auto; font-size: 11px; color: rgba(100, 170, 220, 0.55); white-space: nowrap; }
+</style>
+</head>
+<body>
+
+<canvas id="c"></canvas>
+
+<div id="bar">
+  <h1>Solenoid Fountain</h1>
+  <div class="sep"></div>
+  <label class="btn" for="fileIn">Load JSON</label>
+  <input type="file" id="fileIn" accept=".json">
+  <button class="btn" id="playBtn">⏸ Pause</button>
+  <div class="sep"></div>
+  <span id="fpsLabel">4.0 fps</span>
+  <input type="range" id="fpsRange" min="0.2" max="20" step="0.2" value="4">
+  <span id="info">demo sequence</span>
+</div>
+
+<script>
+// ─── Built-in demo sequence ────────────────────────────────────────────────
+const DEMO = {
+  fps: 4, loop: true,
+  frames: [
+    [1,0,0,0,0,0,0,0,0,0,0,0],[1,1,0,0,0,0,0,0,0,0,0,0],
+    [0,1,1,0,0,0,0,0,0,0,0,0],[0,0,1,1,0,0,0,0,0,0,0,0],
+    [0,0,0,1,1,0,0,0,0,0,0,0],[0,0,0,0,1,1,0,0,0,0,0,0],
+    [0,0,0,0,0,1,1,0,0,0,0,0],[0,0,0,0,0,0,1,1,0,0,0,0],
+    [0,0,0,0,0,0,0,1,1,0,0,0],[0,0,0,0,0,0,0,0,1,1,0,0],
+    [0,0,0,0,0,0,0,0,0,1,1,0],[0,0,0,0,0,0,0,0,0,0,1,1],
+    [0,0,0,0,0,0,0,0,0,0,0,1],[0,0,0,0,0,0,0,0,0,0,0,0],
+    [1,1,1,1,1,1,1,1,1,1,1,1],[0,0,0,0,0,0,0,0,0,0,0,0],
+    [1,0,1,0,1,0,1,0,1,0,1,0],[0,1,0,1,0,1,0,1,0,1,0,1],
+    [1,0,1,0,1,0,1,0,1,0,1,0],[0,1,0,1,0,1,0,1,0,1,0,1],
+    [0,0,0,0,0,1,1,0,0,0,0,0],[0,0,0,0,1,1,1,1,0,0,0,0],
+    [0,0,0,1,1,1,1,1,1,0,0,0],[0,0,1,1,1,1,1,1,1,1,0,0],
+    [0,1,1,1,1,1,1,1,1,1,1,0],[1,1,1,1,1,1,1,1,1,1,1,1],
+    [0,1,1,1,1,1,1,1,1,1,1,0],[0,0,1,1,1,1,1,1,1,1,0,0],
+    [0,0,0,1,1,1,1,1,1,0,0,0],[0,0,0,0,1,1,1,1,0,0,0,0],
+    [0,0,0,0,0,1,1,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0],
+  ]
+};
+
+// ─── State ────────────────────────────────────────────────────────────────
+const N = 12;
+const canvas = document.getElementById('c');
+const ctx    = canvas.getContext('2d');
+
+let frames   = DEMO.frames.map(norm);
+let frameIdx = 0;
+let fps      = DEMO.fps;
+let playing  = true;
+let lastAdv  = performance.now();
+let seqName  = 'demo sequence';
+
+const waterH    = Array(N).fill(0);
+const particles = [];
+
+// ─── UI ───────────────────────────────────────────────────────────────────
+document.getElementById('fileIn').addEventListener('change', e => {
+  const f = e.target.files[0];
+  if (!f) return;
+  const r = new FileReader();
+  r.onload = ev => {
+    try {
+      let raw = JSON.parse(ev.target.result);
+      if (Array.isArray(raw)) {
+        if (raw.length && !Array.isArray(raw[0])) raw = [raw];
+        frames = raw.map(norm);
+        fps = 2;
+      } else {
+        frames = (raw.frames || [Array(N).fill(0)]).map(norm);
+        fps = parseFloat(raw.fps) || 2;
+      }
+      frameIdx = 0;
+      document.getElementById('fpsRange').value = fps;
+      document.getElementById('fpsLabel').textContent = fps.toFixed(1) + ' fps';
+      seqName = f.name;
+      document.getElementById('info').textContent = seqName;
+      playing = true;
+      lastAdv = performance.now();
+      document.getElementById('playBtn').textContent = '⏸ Pause';
+    } catch(err) {
+      alert('Invalid JSON:\n' + err.message);
+    }
+  };
+  r.readAsText(f);
+});
+
+document.getElementById('playBtn').addEventListener('click', () => {
+  playing = !playing;
+  document.getElementById('playBtn').textContent = playing ? '⏸ Pause' : '▶ Play';
+  if (playing) lastAdv = performance.now();
+});
+
+document.getElementById('fpsRange').addEventListener('input', function() {
+  fps = parseFloat(this.value);
+  document.getElementById('fpsLabel').textContent = fps.toFixed(1) + ' fps';
+});
+
+// ─── Helpers ──────────────────────────────────────────────────────────────
+function norm(f) {
+  return (Array.from(f).concat(Array(N).fill(0))).slice(0, N).map(v => v ? 1 : 0);
+}
+
+function layout() {
+  const W = canvas.width, H = canvas.height;
+  const BAR = 48, SOL = 72, POOL = 52, PAD = 16;
+  const basinY = H - SOL - POOL;
+  const maxJet = Math.max(1, basinY - BAR - PAD);
+  const slotW  = W / N;
+  return { W, H, BAR, SOL, POOL, basinY, maxJet, slotW };
+}
+
+function resize() {
+  canvas.width  = window.innerWidth;
+  canvas.height = window.innerHeight;
+}
+window.addEventListener('resize', resize);
+resize();
+
+// ─── Particle ─────────────────────────────────────────────────────────────
+class Drop {
+  constructor(x, y) {
+    const a = -Math.PI / 2 + (Math.random() - 0.5) * 2.0;
+    const s = Math.random() * 130 + 50;
+    this.x = x; this.y = y;
+    this.vx = Math.cos(a) * s;
+    this.vy = Math.sin(a) * s;
+    this.life = 1;
+    this.decay = Math.random() * 1.3 + 0.7;
+    this.r = Math.random() * 2.5 + 0.6;
+  }
+  step(dt) {
+    this.vy += 300 * dt;
+    this.x  += this.vx * dt;
+    this.y  += this.vy * dt;
+    this.life -= this.decay * dt;
+    return this.life > 0;
+  }
+}
+
+// ─── Main loop ────────────────────────────────────────────────────────────
+let prev = performance.now();
+
+function tick(now) {
+  const dt = Math.min((now - prev) / 1000, 0.05);
+  prev = now;
+
+  const { W, H, SOL, POOL, basinY, maxJet, slotW } = layout();
+  const states = frames[frameIdx];
+
+  // Advance sequence frame
+  if (playing && frames.length > 1 && now - lastAdv >= 1000 / fps) {
+    frameIdx = (frameIdx + 1) % frames.length;
+    lastAdv  = now;
+  }
+
+  // Physics + particle emission
+  for (let i = 0; i < N; i++) {
+    const target = states[i] ? maxJet : 0;
+    waterH[i] = waterH[i] < target
+      ? Math.min(target, waterH[i] + maxJet * 4.5 * dt)
+      : Math.max(target, waterH[i] - maxJet * 2.8 * dt);
+
+    const full = waterH[i] / maxJet;
+    if (states[i] && full > 0.82 && Math.random() < 0.45) {
+      particles.push(new Drop(slotW * (i + 0.5), basinY - waterH[i]));
+    }
+  }
+  for (let i = particles.length - 1; i >= 0; i--) {
+    if (!particles[i].step(dt)) particles.splice(i, 1);
+  }
+
+  render(states, W, H, SOL, POOL, basinY, maxJet, slotW, now / 1000);
+
+  document.getElementById('info').textContent =
+    `${seqName} — frame ${frameIdx + 1}/${frames.length}`;
+
+  requestAnimationFrame(tick);
+}
+
+// ─── Render ───────────────────────────────────────────────────────────────
+function render(states, W, H, SOL, POOL, basinY, maxJet, slotW, t) {
+
+  // Background
+  const bg = ctx.createLinearGradient(0, 0, 0, H);
+  bg.addColorStop(0, '#010c1f');
+  bg.addColorStop(1, '#000508');
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, W, H);
+
+  // Soft ambient glow behind each active jet
+  for (let i = 0; i < N; i++) {
+    const h = waterH[i];
+    if (h < 2) continue;
+    const cx  = slotW * (i + 0.5);
+    const rad = ctx.createRadialGradient(cx, basinY - h * 0.5, 0, cx, basinY - h * 0.5, slotW * 0.7);
+    rad.addColorStop(0, `rgba(0,120,255,${0.08 * (h / maxJet)})`);
+    rad.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = rad;
+    ctx.fillRect(cx - slotW, basinY - h, slotW * 2, h);
+  }
+
+  // Water jets
+  for (let i = 0; i < N; i++) {
+    const h = waterH[i];
+    if (h < 1) continue;
+    const cx   = slotW * (i + 0.5);
+    const tipY = basinY - h;
+    const bw   = Math.min(slotW * 0.18, 13);
+    const wobble = Math.sin(t * 3.5 + i * 1.9) * 1.4;
+
+    const grad = ctx.createLinearGradient(cx, basinY, cx, tipY);
+    grad.addColorStop(0,   '#003fa0');
+    grad.addColorStop(0.35,'#0088ee');
+    grad.addColorStop(0.75,'#33bbff');
+    grad.addColorStop(1,   '#cceeff');
+    ctx.fillStyle = grad;
+
+    ctx.beginPath();
+    ctx.moveTo(cx - bw, basinY);
+    ctx.quadraticCurveTo(cx - 3 + wobble, basinY - h * 0.55, cx - 2.5 + wobble, tipY);
+    ctx.lineTo(cx + 2.5 + wobble, tipY);
+    ctx.quadraticCurveTo(cx + 3 + wobble, basinY - h * 0.55, cx + bw, basinY);
+    ctx.closePath();
+    ctx.fill();
+
+    // Bright core highlight
+    ctx.globalAlpha = 0.35;
+    ctx.fillStyle   = '#99ddff';
+    ctx.beginPath();
+    ctx.moveTo(cx - 1, basinY);
+    ctx.lineTo(cx - 1 + wobble, tipY);
+    ctx.lineTo(cx + 1 + wobble, tipY);
+    ctx.lineTo(cx + 1, basinY);
+    ctx.closePath();
+    ctx.fill();
+    ctx.globalAlpha = 1;
+  }
+
+  // Spray droplets
+  for (const p of particles) {
+    ctx.globalAlpha = Math.max(0, p.life * 0.85);
+    ctx.fillStyle   = '#77ccff';
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+
+  // Pool body
+  const poolTop = basinY;
+  const poolBot = basinY + POOL;
+  const poolGrad = ctx.createLinearGradient(0, poolTop, 0, poolBot);
+  poolGrad.addColorStop(0, '#002050');
+  poolGrad.addColorStop(1, '#001028');
+  ctx.fillStyle = poolGrad;
+  ctx.fillRect(0, poolTop, W, POOL);
+
+  // Pool surface sheen
+  ctx.fillStyle = 'rgba(0, 90, 200, 0.18)';
+  ctx.fillRect(0, poolTop, W, 10);
+
+  // Surface glow line
+  ctx.save();
+  ctx.shadowColor = '#0099ff';
+  ctx.shadowBlur  = 10;
+  ctx.strokeStyle = 'rgba(60, 170, 255, 0.65)';
+  ctx.lineWidth   = 1.5;
+  ctx.beginPath(); ctx.moveTo(0, poolTop); ctx.lineTo(W, poolTop); ctx.stroke();
+  ctx.restore();
+
+  // Ripple rings on pool surface
+  for (let i = 0; i < N; i++) {
+    const ratio = waterH[i] / maxJet;
+    if (ratio < 0.05) continue;
+    const cx   = slotW * (i + 0.5);
+    const maxR = slotW * 0.65;
+    for (let k = 0; k < 3; k++) {
+      const phase = ((t * 1.1 + k * 0.37 + i * 0.13) % 1);
+      const rad   = phase * maxR;
+      ctx.globalAlpha = (1 - phase) * 0.28 * ratio;
+      ctx.strokeStyle = '#55bbff';
+      ctx.lineWidth   = 1;
+      ctx.beginPath();
+      ctx.ellipse(cx, poolTop + 6, rad, rad * 0.2, 0, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+  }
+  ctx.globalAlpha = 1;
+
+  // Solenoid row background
+  ctx.fillStyle = '#01060f';
+  ctx.fillRect(0, poolBot, W, SOL);
+  ctx.strokeStyle = 'rgba(0, 50, 100, 0.5)';
+  ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(0, poolBot); ctx.lineTo(W, poolBot); ctx.stroke();
+
+  // Solenoid indicators
+  for (let i = 0; i < N; i++) {
+    const cx   = slotW * (i + 0.5);
+    const cy   = poolBot + SOL / 2;
+    const r    = Math.min(slotW * 0.28, 21);
+    const open = !!states[i];
+
+    if (open) {
+      ctx.save();
+      ctx.shadowColor = 'rgba(0,255,130,0.7)';
+      ctx.shadowBlur  = 18;
+      ctx.strokeStyle = 'rgba(0, 255, 130, 0.6)';
+      ctx.lineWidth   = 1.5;
+      ctx.beginPath(); ctx.arc(cx, cy, r + 4, 0, Math.PI * 2); ctx.stroke();
+      ctx.restore();
+    }
+
+    // Ring
+    ctx.strokeStyle = open ? 'rgba(0, 230, 130, 0.9)' : 'rgba(200, 55, 55, 0.5)';
+    ctx.lineWidth   = 1.5;
+    ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.stroke();
+
+    // Fill
+    const rg = ctx.createRadialGradient(cx, cy - r * 0.25, 1, cx, cy, r - 1);
+    if (open) {
+      rg.addColorStop(0, 'rgba(180, 255, 210, 0.95)');
+      rg.addColorStop(1, 'rgba(0, 110, 55, 0.88)');
+    } else {
+      rg.addColorStop(0, 'rgba(65, 18, 18, 0.95)');
+      rg.addColorStop(1, 'rgba(28, 5, 5, 0.9)');
+    }
+    ctx.fillStyle = rg;
+    ctx.beginPath(); ctx.arc(cx, cy, r - 1.5, 0, Math.PI * 2); ctx.fill();
+
+    // Number
+    const fs = Math.max(9, Math.round(r * 0.72));
+    ctx.fillStyle    = open ? '#ddfff0' : 'rgba(180, 110, 110, 0.6)';
+    ctx.font         = `bold ${fs}px monospace`;
+    ctx.textAlign    = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(String(i + 1).padStart(2, '0'), cx, cy);
+  }
+}
+
+requestAnimationFrame(tick);
+</script>
+</body>
+</html>
