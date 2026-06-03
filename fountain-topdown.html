@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Solenoid Fountain — Plan View</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #000; overflow: hidden; font-family: 'Segoe UI', system-ui, sans-serif; }
+  canvas { display: block; position: fixed; inset: 0; }
+  #bar {
+    position: fixed; top: 0; left: 0; right: 0; height: 48px;
+    display: flex; align-items: center; gap: 12px; padding: 0 20px;
+    background: rgba(10, 18, 30, 0.92);
+    border-bottom: 1px solid rgba(0, 120, 220, 0.25);
+    backdrop-filter: blur(10px);
+    z-index: 10; user-select: none;
+  }
+  #bar h1 { font-size: 11px; letter-spacing: 3px; color: #4db8ff; text-transform: uppercase; white-space: nowrap; }
+  .sep { width: 1px; height: 24px; background: rgba(0, 120, 220, 0.3); flex-shrink: 0; }
+  .btn {
+    background: rgba(0, 80, 160, 0.35); border: 1px solid rgba(0, 140, 255, 0.4);
+    color: #9acfe8; padding: 5px 14px; border-radius: 4px; cursor: pointer;
+    font-size: 12px; white-space: nowrap; transition: background .15s, color .15s;
+  }
+  .btn:hover { background: rgba(0, 120, 220, 0.55); color: #fff; }
+  input[type=file] { display: none; }
+  #fpsLabel { font-size: 12px; color: #5599bb; white-space: nowrap; min-width: 46px; }
+  input[type=range] { width: 90px; cursor: pointer; accent-color: #0088ff; }
+  #info { margin-left: auto; font-size: 11px; color: rgba(100, 170, 220, 0.55); white-space: nowrap; }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="bar">
+  <h1>Fountain — Plan View</h1>
+  <div class="sep"></div>
+  <label class="btn" for="fileIn">Load JSON</label>
+  <input type="file" id="fileIn" accept=".json">
+  <button class="btn" id="playBtn">⏸ Pause</button>
+  <div class="sep"></div>
+  <span id="fpsLabel">4.0 fps</span>
+  <input type="range" id="fpsRange" min="0.2" max="20" step="0.2" value="4">
+  <span id="info">demo sequence</span>
+</div>
+
+<script>
+// ─── Demo sequence ────────────────────────────────────────────────────────
+const DEMO = {
+  fps: 4, loop: true,
+  frames: [
+    [1,0,0,0,0,0,0,0,0,0,0,0],[1,1,0,0,0,0,0,0,0,0,0,0],
+    [0,1,1,0,0,0,0,0,0,0,0,0],[0,0,1,1,0,0,0,0,0,0,0,0],
+    [0,0,0,1,1,0,0,0,0,0,0,0],[0,0,0,0,1,1,0,0,0,0,0,0],
+    [0,0,0,0,0,1,1,0,0,0,0,0],[0,0,0,0,0,0,1,1,0,0,0,0],
+    [0,0,0,0,0,0,0,1,1,0,0,0],[0,0,0,0,0,0,0,0,1,1,0,0],
+    [0,0,0,0,0,0,0,0,0,1,1,0],[0,0,0,0,0,0,0,0,0,0,1,1],
+    [0,0,0,0,0,0,0,0,0,0,0,1],[0,0,0,0,0,0,0,0,0,0,0,0],
+    [1,1,1,1,1,1,1,1,1,1,1,1],[0,0,0,0,0,0,0,0,0,0,0,0],
+    [1,0,1,0,1,0,1,0,1,0,1,0],[0,1,0,1,0,1,0,1,0,1,0,1],
+    [1,0,1,0,1,0,1,0,1,0,1,0],[0,1,0,1,0,1,0,1,0,1,0,1],
+    [0,0,0,0,0,1,1,0,0,0,0,0],[0,0,0,0,1,1,1,1,0,0,0,0],
+    [0,0,0,1,1,1,1,1,1,0,0,0],[0,0,1,1,1,1,1,1,1,1,0,0],
+    [0,1,1,1,1,1,1,1,1,1,1,0],[1,1,1,1,1,1,1,1,1,1,1,1],
+    [0,1,1,1,1,1,1,1,1,1,1,0],[0,0,1,1,1,1,1,1,1,1,0,0],
+    [0,0,0,1,1,1,1,1,1,0,0,0],[0,0,0,0,1,1,1,1,0,0,0,0],
+    [0,0,0,0,0,1,1,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0],
+  ]
+};
+
+// ─── Jet positions (normalized: x/y in -1…1 relative to pool center) ─────
+// Mirroring the approximate scatter from the architectural plan image
+const JET_POS = [
+  [-0.60, -0.58],  //  1
+  [-0.18, -0.68],  //  2
+  [ 0.24, -0.58],  //  3
+  [ 0.58, -0.40],  //  4
+  [-0.72, -0.08],  //  5
+  [-0.32, -0.22],  //  6
+  [ 0.10, -0.26],  //  7
+  [ 0.54, -0.02],  //  8
+  [-0.52,  0.34],  //  9
+  [-0.10,  0.44],  // 10
+  [ 0.32,  0.52],  // 11
+  [ 0.60,  0.30],  // 12
+];
+
+// ─── State ────────────────────────────────────────────────────────────────
+const N = 12;
+const canvas = document.getElementById('c');
+const ctx    = canvas.getContext('2d');
+
+let frames   = DEMO.frames.map(norm);
+let frameIdx = 0;
+let fps      = DEMO.fps;
+let playing  = true;
+let lastAdv  = performance.now();
+let seqName  = 'demo sequence';
+
+const strength = Array(N).fill(0);  // per-jet animated strength 0→1
+
+// ─── Resize ───────────────────────────────────────────────────────────────
+function resize() {
+  canvas.width  = window.innerWidth;
+  canvas.height = window.innerHeight;
+}
+window.addEventListener('resize', resize);
+resize();
+
+// ─── UI ───────────────────────────────────────────────────────────────────
+document.getElementById('fileIn').addEventListener('change', e => {
+  const f = e.target.files[0]; if (!f) return;
+  const r = new FileReader();
+  r.onload = ev => {
+    try {
+      let raw = JSON.parse(ev.target.result);
+      if (Array.isArray(raw)) {
+        if (raw.length && !Array.isArray(raw[0])) raw = [raw];
+        frames = raw.map(norm); fps = 2;
+      } else {
+        frames = (raw.frames || [Array(N).fill(0)]).map(norm);
+        fps = parseFloat(raw.fps) || 2;
+      }
+      frameIdx = 0; playing = true; lastAdv = performance.now(); seqName = f.name;
+      document.getElementById('fpsRange').value = fps;
+      document.getElementById('fpsLabel').textContent = fps.toFixed(1) + ' fps';
+      document.getElementById('playBtn').textContent = '⏸ Pause';
+    } catch(err) { alert('Invalid JSON:\n' + err.message); }
+  };
+  r.readAsText(f);
+});
+
+document.getElementById('playBtn').addEventListener('click', () => {
+  playing = !playing;
+  document.getElementById('playBtn').textContent = playing ? '⏸ Pause' : '▶ Play';
+  if (playing) lastAdv = performance.now();
+});
+
+document.getElementById('fpsRange').addEventListener('input', function() {
+  fps = parseFloat(this.value);
+  document.getElementById('fpsLabel').textContent = fps.toFixed(1) + ' fps';
+});
+
+// ─── Helpers ──────────────────────────────────────────────────────────────
+function norm(f) {
+  return (Array.from(f).concat(Array(N).fill(0))).slice(0, N).map(v => v ? 1 : 0);
+}
+
+function layout() {
+  const W = canvas.width, H = canvas.height;
+  const BAR = 48;
+  // Pool radius: scale so the blob fills ~85% of available space
+  const avW = W * 0.82;
+  const avH = (H - BAR) * 0.88;
+  // Blob aspect is ~2.15 wide × 2.15 tall (roughly circular), slightly x-stretched
+  const RX = Math.min(avW / 2.2, avH / 2.15);
+  const RY = RX * 0.88;  // slightly shorter than wide
+  const cx = W / 2;
+  const cy = BAR + (H - BAR) / 2;
+  return { W, H, BAR, RX, RY, cx, cy };
+}
+
+// Organic blob path matching the "Barrier Reef" pool silhouette.
+// Control points tuned to approximate the kidney/amoeba shape in the plan.
+function blobPath(ctx, cx, cy, RX, RY) {
+  const p = (nx, ny) => [cx + nx * RX, cy + ny * RY];
+  ctx.beginPath();
+  ctx.moveTo(...p(-0.15, -0.95));
+  ctx.bezierCurveTo(...p( 0.20, -1.08), ...p( 0.78, -0.70), ...p( 0.92, -0.18));
+  ctx.bezierCurveTo(...p( 1.07,  0.24), ...p( 0.80,  0.74), ...p( 0.38,  0.93));
+  ctx.bezierCurveTo(...p( 0.04,  1.07), ...p(-0.38,  0.90), ...p(-0.62,  0.62));
+  ctx.bezierCurveTo(...p(-0.96,  0.34), ...p(-1.06, -0.08), ...p(-0.88, -0.50));
+  ctx.bezierCurveTo(...p(-0.76, -0.84), ...p(-0.46, -1.00), ...p(-0.15, -0.95));
+  ctx.closePath();
+}
+
+// ─── Main loop ────────────────────────────────────────────────────────────
+let prev = performance.now();
+
+function tick(now) {
+  const dt = Math.min((now - prev) / 1000, 0.05);
+  prev = now;
+
+  if (playing && frames.length > 1 && now - lastAdv >= 1000 / fps) {
+    frameIdx = (frameIdx + 1) % frames.length;
+    lastAdv  = now;
+  }
+
+  const states = frames[frameIdx];
+  for (let i = 0; i < N; i++) {
+    const target = states[i] ? 1 : 0;
+    strength[i] = strength[i] < target
+      ? Math.min(1, strength[i] + 3.5 * dt)
+      : Math.max(0, strength[i] - 2.5 * dt);
+  }
+
+  const t = now / 1000;
+  const L = layout();
+  render(states, t, L);
+
+  document.getElementById('info').textContent =
+    `${seqName} — frame ${frameIdx + 1}/${frames.length}`;
+
+  requestAnimationFrame(tick);
+}
+
+// ─── Render ───────────────────────────────────────────────────────────────
+function render(states, t, { W, H, BAR, RX, RY, cx, cy }) {
+
+  // ── Paving background ────────────────────────────────────────────────────
+  ctx.fillStyle = '#c8c3ba';
+  ctx.fillRect(0, 0, W, H);
+
+  // Subtle tile grid
+  ctx.strokeStyle = 'rgba(0,0,0,0.07)';
+  ctx.lineWidth = 1;
+  const tile = 52;
+  for (let x = tile / 2; x < W; x += tile) {
+    ctx.beginPath(); ctx.moveTo(x, BAR); ctx.lineTo(x, H); ctx.stroke();
+  }
+  for (let y = BAR + tile / 2; y < H; y += tile) {
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+  }
+
+  // ── Pool drop shadow ─────────────────────────────────────────────────────
+  ctx.save();
+  ctx.shadowColor = 'rgba(0, 15, 50, 0.5)';
+  ctx.shadowBlur  = 28;
+  ctx.shadowOffsetX = 5; ctx.shadowOffsetY = 9;
+  blobPath(ctx, cx, cy, RX, RY);
+  ctx.fillStyle = 'rgba(0,0,0,0.001)';
+  ctx.fill();
+  ctx.restore();
+
+  // ── Pool concrete surround (raised edge effect) ───────────────────────────
+  blobPath(ctx, cx, cy, RX * 1.022, RY * 1.022);
+  ctx.fillStyle = '#bbb5ab';
+  ctx.fill();
+
+  // ── Pool water fill ───────────────────────────────────────────────────────
+  const wg = ctx.createRadialGradient(
+    cx - RX * 0.22, cy - RY * 0.28, RX * 0.04,
+    cx + RX * 0.05, cy + RY * 0.05, Math.max(RX, RY) * 1.05
+  );
+  wg.addColorStop(0.00, '#45d4f0');
+  wg.addColorStop(0.30, '#18aad8');
+  wg.addColorStop(0.65, '#0882b5');
+  wg.addColorStop(1.00, '#04527a');
+  blobPath(ctx, cx, cy, RX, RY);
+  ctx.fillStyle = wg;
+  ctx.fill();
+
+  // ── Animated shimmer (clipped to pool) ────────────────────────────────────
+  ctx.save();
+  blobPath(ctx, cx, cy, RX, RY);
+  ctx.clip();
+
+  ctx.lineWidth = 1;
+  const shimStep = 20;
+  for (let yy = cy - RY - shimStep; yy < cy + RY + shimStep; yy += shimStep) {
+    const wave = Math.sin(t * 0.35 + yy * 0.013) * 9;
+    ctx.globalAlpha = 0.045 + 0.02 * Math.sin(t * 0.6 + yy * 0.02);
+    ctx.strokeStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.moveTo(cx - RX * 1.2, yy + wave);
+    ctx.quadraticCurveTo(cx, yy + Math.sin(t * 0.5 + yy * 0.03) * 4, cx + RX * 1.2, yy - wave);
+    ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+
+  // ── Ripple rings (clipped) ────────────────────────────────────────────────
+  const maxR  = Math.min(RX, RY) * 0.24;
+  const RINGS = 5;
+
+  for (let i = 0; i < N; i++) {
+    const str = strength[i];
+    if (str < 0.01) continue;
+    const jx = cx + JET_POS[i][0] * RX;
+    const jy = cy + JET_POS[i][1] * RY;
+
+    for (let k = 0; k < RINGS; k++) {
+      const phase = ((t * 1.3 + k / RINGS + i * 0.07) % 1);
+      const r   = phase * maxR;
+      const a   = (1 - phase) * (1 - phase) * 0.65 * str;  // quadratic fade
+      ctx.globalAlpha = a;
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth   = 1.5;
+      ctx.beginPath();
+      ctx.arc(jx, jy, Math.max(1, r), 0, Math.PI * 2);
+      ctx.stroke();
+    }
+  }
+  ctx.globalAlpha = 1;
+  ctx.restore();  // end pool clip
+
+  // ── Pool edge highlight ───────────────────────────────────────────────────
+  blobPath(ctx, cx, cy, RX, RY);
+  ctx.strokeStyle = 'rgba(255,255,255,0.70)';
+  ctx.lineWidth = 3;
+  ctx.stroke();
+
+  blobPath(ctx, cx, cy, RX, RY);
+  ctx.strokeStyle = 'rgba(0,40,90,0.18)';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  // ── Jet nozzles ───────────────────────────────────────────────────────────
+  const nr = Math.max(5, Math.min(RX, RY) * 0.038);  // nozzle visual radius
+
+  for (let i = 0; i < N; i++) {
+    const str = strength[i];
+    const jx  = cx + JET_POS[i][0] * RX;
+    const jy  = cy + JET_POS[i][1] * RY;
+
+    // Active glow halo
+    if (str > 0.01) {
+      ctx.save();
+      ctx.shadowColor = 'rgba(200, 245, 255, 0.95)';
+      ctx.shadowBlur  = nr * 2.5 * str;
+      ctx.fillStyle   = `rgba(255,255,255,${0.85 * str})`;
+      ctx.beginPath();
+      ctx.arc(jx, jy, nr * (0.55 + str * 0.55), 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    // Nozzle cap
+    ctx.fillStyle   = str > 0.5 ? '#ffffff' : 'rgba(15, 45, 80, 0.85)';
+    ctx.strokeStyle = str > 0.5 ? 'rgba(0,100,180,0.5)' : 'rgba(255,255,255,0.4)';
+    ctx.lineWidth   = 1;
+    ctx.beginPath();
+    ctx.arc(jx, jy, nr * 0.42, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+
+    // Number label
+    const fs = Math.max(8, Math.round(nr * 1.15));
+    ctx.font         = `bold ${fs}px monospace`;
+    ctx.textAlign    = 'center';
+    ctx.textBaseline = 'top';
+    ctx.fillStyle    = str > 0.45 ? 'rgba(255,255,255,0.95)' : 'rgba(210,230,255,0.80)';
+    ctx.fillText(String(i + 1).padStart(2, '0'), jx, jy + nr * 0.55 + 2);
+  }
+
+  // ── Legend (bottom-left) ──────────────────────────────────────────────────
+  const lx = 20, ly = H - 14;
+  const openCount   = frames[frameIdx].reduce((s, v) => s + v, 0);
+  const closedCount = N - openCount;
+  ctx.font         = '11px monospace';
+  ctx.textBaseline = 'alphabetic';
+  ctx.textAlign    = 'left';
+  ctx.fillStyle    = 'rgba(50,70,100,0.75)';
+  ctx.fillText(`● open: ${openCount}   ○ closed: ${closedCount}   jets: ${N}`, lx, ly);
+}
+
+requestAnimationFrame(tick);
+</script>
+</body>
+</html>
