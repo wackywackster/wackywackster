@@ -76,12 +76,20 @@ with st.sidebar:
                             else (date_range[0], date.today()))
 
     groups = sorted({s.group for s in UNIVERSE})
-    selected: list[str] = st.multiselect(
+    group_pick: list[str] = st.multiselect(
+        "Add whole groups",
+        options=groups,
+        default=[],
+        help="Everything in these groups is added on top of the individual selection below.",
+    )
+    selected_individual: list[str] = st.multiselect(
         "Securities",
         options=[s.ticker for s in UNIVERSE],
         default=DEFAULT_SELECTION,
         format_func=lambda t: f"{TICKER_NAME[t]} ({t}) — {TICKER_GROUP[t]}",
     )
+    selected: list[str] = list(dict.fromkeys(
+        [s.ticker for s in UNIVERSE if s.group in group_pick] + selected_individual))
 
     benchmark = st.selectbox(
         "Benchmark",

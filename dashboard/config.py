@@ -53,6 +53,8 @@ BENCHMARKS: list[Security] = [
 SECTOR_PROXIES: list[Security] = [
     Security("ITA", "iShares U.S. Aerospace & Defense", "Aerospace & Defense", "#2ca02c"),
     Security("XAR", "SPDR S&P Aerospace & Defense", "Aerospace & Defense", "#98df8a"),
+    Security("UFO", "Procure Space ETF", "Aerospace & Defense", "#5254a3"),
+    Security("IPO", "Renaissance IPO ETF (IPO-market sentiment)", "Aerospace & Defense", "#ad494a"),
 ]
 
 SPACE_COMPANIES: list[Security] = [
@@ -62,6 +64,27 @@ SPACE_COMPANIES: list[Security] = [
     Security("LUNR", "Intuitive Machines", "Space Companies", "#e377c2"),
     Security("RDW", "Redwire", "Space Companies", "#bcbd22"),
     Security("PL", "Planet Labs", "Space Companies", "#7f7f7f"),
+    Security("FLY", "Firefly Aerospace", "Space Companies", "#8c6d31"),
+    Security("VOYG", "Voyager Technologies", "Space Companies", "#637939"),
+    Security("SPIR", "Spire Global", "Space Companies", "#843c39"),
+    Security("BKSY", "BlackSky Technology", "Space Companies", "#7b4173"),
+]
+
+DEFENSE_PRIMES: list[Security] = [
+    Security("BA", "Boeing (ULA co-owner)", "Defense Primes", "#3182bd"),
+    Security("LMT", "Lockheed Martin (ULA co-owner)", "Defense Primes", "#31a354"),
+    Security("NOC", "Northrop Grumman", "Defense Primes", "#756bb1"),
+    Security("RTX", "RTX", "Defense Primes", "#636363"),
+    Security("LHX", "L3Harris (Aerojet Rocketdyne)", "Defense Primes", "#e6550d"),
+    Security("KTOS", "Kratos Defense", "Defense Primes", "#9c9ede"),
+    Security("AVAV", "AeroVironment", "Defense Primes", "#cedb9c"),
+]
+
+SATCOM: list[Security] = [
+    Security("VSAT", "Viasat (Starlink competitor)", "Satellite Comms", "#e7969c"),
+    Security("SATS", "EchoStar (spectrum)", "Satellite Comms", "#de9ed6"),
+    Security("GSAT", "Globalstar (Apple satellite)", "Satellite Comms", "#c5b0d5"),
+    Security("TMUS", "T-Mobile US (Starlink direct-to-cell partner)", "Satellite Comms", "#ff9896"),
 ]
 
 RELATED: list[Security] = [
@@ -78,7 +101,8 @@ SPACEX_EXPOSURE: list[Security] = [
     Security("ARKX", "ARK Space Exploration ETF", "SpaceX Exposure", "#f7b6d2"),
 ]
 
-UNIVERSE: list[Security] = BENCHMARKS + SECTOR_PROXIES + SPACE_COMPANIES + RELATED + SPACEX_EXPOSURE
+UNIVERSE: list[Security] = (BENCHMARKS + SECTOR_PROXIES + SPACE_COMPANIES
+                            + DEFENSE_PRIMES + SATCOM + RELATED + SPACEX_EXPOSURE)
 
 TICKER_NAME: dict[str, str] = {s.ticker: s.name for s in UNIVERSE}
 TICKER_COLOR: dict[str, str] = {s.ticker: s.color for s in UNIVERSE}
@@ -88,8 +112,9 @@ DEFAULT_BENCHMARK: str = "^GSPC"
 
 # Tickers shown by default when the app first loads.
 DEFAULT_SELECTION: list[str] = [
-    "^GSPC", "^NDX", "^RUT", "ITA",
+    "^GSPC", "^NDX", "^RUT", "ITA", "UFO",
     "RKLB", "ASTS", "IRDM", "LUNR", "RDW", "PL",
+    "LMT", "VSAT",
     "TSLA", "XOVR", "SPCX", "BTC-USD",
 ]
 

@@ -41,12 +41,17 @@ until enough post-listing history accrues.
 ## Coverage
 
 - **Benchmarks:** S&P 500 (^GSPC), Nasdaq 100 (^NDX), Russell 2000 (^RUT)
-- **Sector:** iShares (ITA) and SPDR (XAR) Aerospace & Defense ETFs
-- **Space companies:** RKLB, ASTS, IRDM, LUNR, RDW, PL
+- **Sector / sentiment ETFs:** ITA, XAR (aerospace & defense), UFO (space), IPO (IPO-market sentiment)
+- **Space companies:** RKLB, ASTS, IRDM, LUNR, RDW, PL, FLY (Firefly), VOYG (Voyager), SPIR, BKSY
+- **Defense primes & launch competitors:** BA, LMT (ULA co-owners), NOC, RTX, LHX, KTOS, AVAV
+- **Satellite comms (Starlink competitors/partners):** VSAT, SATS, GSAT, TMUS
 - **Musk ecosystem:** TSLA
 - **Crypto:** BTC-USD (aligned to equity trading days)
 - **SpaceX itself:** SPCX (price history begins at the 12 Jun 2026 listing)
 - **SpaceX exposure funds:** XOVR (ERShares Crossover), DXYZ (Destiny Tech100), ARKX
+
+Use the sidebar's **Add whole groups** control to pull an entire category into the
+analysis at once.
 
 ## Interactive filters
 
