@@ -88,8 +88,18 @@ with st.sidebar:
         default=DEFAULT_SELECTION,
         format_func=lambda t: f"{TICKER_NAME[t]} ({t}) — {TICKER_GROUP[t]}",
     )
+    custom_input = st.text_input(
+        "Add custom tickers",
+        placeholder="e.g. NVDA, GOOGL, ETH-USD",
+        help="Comma-separated Yahoo Finance symbols — stocks, ETFs, indices (^DJI) "
+             "or crypto (ETH-USD). Added on top of the selection above.",
+    )
+    custom_tickers = list(dict.fromkeys(
+        t.strip().upper() for t in custom_input.split(",") if t.strip()))
+
     selected: list[str] = list(dict.fromkeys(
-        [s.ticker for s in UNIVERSE if s.group in group_pick] + selected_individual))
+        [s.ticker for s in UNIVERSE if s.group in group_pick]
+        + selected_individual + custom_tickers))
 
     benchmark = st.selectbox(
         "Benchmark",
