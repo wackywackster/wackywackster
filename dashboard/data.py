@@ -39,6 +39,9 @@ def load_history(tickers: tuple[str, ...], start: date, end: date) -> dict[str, 
         except (KeyError, TypeError):
             continue
     close = close.dropna(how="all")
+    # Crypto trades 7 days a week; keep weekdays only so daily returns,
+    # volatility and correlations align with equity trading sessions.
+    close = close[close.index.dayofweek < 5]
     volume = volume.reindex(close.index)
     return {"close": close, "volume": volume}
 

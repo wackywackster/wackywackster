@@ -44,6 +44,7 @@ until enough post-listing history accrues.
 - **Sector:** iShares (ITA) and SPDR (XAR) Aerospace & Defense ETFs
 - **Space companies:** RKLB, ASTS, IRDM, LUNR, RDW, PL
 - **Musk ecosystem:** TSLA
+- **Crypto:** BTC-USD (aligned to equity trading days)
 - **SpaceX itself:** SPCX (price history begins at the 12 Jun 2026 listing)
 - **SpaceX exposure funds:** XOVR (ERShares Crossover), DXYZ (Destiny Tech100), ARKX
 

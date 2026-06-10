@@ -66,6 +66,7 @@ SPACE_COMPANIES: list[Security] = [
 
 RELATED: list[Security] = [
     Security("TSLA", "Tesla", "Musk Ecosystem", "#aec7e8"),
+    Security("BTC-USD", "Bitcoin", "Crypto", "#f2a900"),
 ]
 
 # SpaceX itself (no price history until the 12 Jun 2026 listing) plus funds
@@ -89,7 +90,7 @@ DEFAULT_BENCHMARK: str = "^GSPC"
 DEFAULT_SELECTION: list[str] = [
     "^GSPC", "^NDX", "^RUT", "ITA",
     "RKLB", "ASTS", "IRDM", "LUNR", "RDW", "PL",
-    "TSLA", "XOVR", "SPCX",
+    "TSLA", "XOVR", "SPCX", "BTC-USD",
 ]
 
 # ---------------------------------------------------------------------------

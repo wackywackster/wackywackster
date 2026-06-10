@@ -14,7 +14,9 @@ from .config import TRADING_DAYS_PER_YEAR
 # Return transformations
 # ---------------------------------------------------------------------------
 def daily_returns(close: pd.DataFrame) -> pd.DataFrame:
-    return close.pct_change().dropna(how="all")
+    # fill_method=None: don't pad gaps (market holidays where only crypto
+    # trades) into artificial zero-return days.
+    return close.pct_change(fill_method=None).dropna(how="all")
 
 
 def cumulative_returns(close: pd.DataFrame) -> pd.DataFrame:
