@@ -13,9 +13,13 @@ from datetime import date
 
 # ---------------------------------------------------------------------------
 # THE single configurable IPO date.
-# Update this when SpaceX announces its actual IPO date.
+# Confirmed: SpaceX lists on Nasdaq as SPCX on 12 June 2026 at $135/share
+# (~$1.77T initial market cap).  Adjust here if the listing slips.
 # ---------------------------------------------------------------------------
-IPO_DATE: date = date(2026, 12, 15)  # placeholder / assumed listing date
+IPO_DATE: date = date(2026, 6, 12)
+
+# SpaceX ticker once trading begins.
+SPACEX_TICKER: str = "SPCX"
 
 # Length of the "IPO event period" in trading days either side of the listing.
 EVENT_WINDOW_DAYS: int = 10
@@ -64,8 +68,10 @@ RELATED: list[Security] = [
     Security("TSLA", "Tesla", "Musk Ecosystem", "#aec7e8"),
 ]
 
-# Funds with disclosed SpaceX exposure (pre-IPO private holdings).
+# SpaceX itself (no price history until the 12 Jun 2026 listing) plus funds
+# with disclosed pre-IPO SpaceX exposure.
 SPACEX_EXPOSURE: list[Security] = [
+    Security("SPCX", "SpaceX", "SpaceX", "#000000"),
     Security("XOVR", "ERShares Private-Public Crossover ETF (holds SpaceX)", "SpaceX Exposure", "#ffbb78"),
     Security("DXYZ", "Destiny Tech100 (holds SpaceX)", "SpaceX Exposure", "#c49c94"),
     Security("ARKX", "ARK Space Exploration ETF", "SpaceX Exposure", "#f7b6d2"),
@@ -83,13 +89,15 @@ DEFAULT_BENCHMARK: str = "^GSPC"
 DEFAULT_SELECTION: list[str] = [
     "^GSPC", "^NDX", "^RUT", "ITA",
     "RKLB", "ASTS", "IRDM", "LUNR", "RDW", "PL",
-    "TSLA", "XOVR",
+    "TSLA", "XOVR", "SPCX",
 ]
 
 # ---------------------------------------------------------------------------
 # Scenario modelling assumptions (USD billions unless stated otherwise)
 # ---------------------------------------------------------------------------
-IPO_VALUATION_SCENARIOS_B: list[int] = [200, 300, 500, 1000]
+# Hypothetical scenarios plus the actual priced valuation (~$1.77T at $135/share).
+IPO_VALUATION_SCENARIOS_B: list[int] = [200, 300, 500, 1000, 1770]
+ACTUAL_IPO_VALUATION_B: int = 1770
 
 # Approximate total float-adjusted market capitalisations of the major
 # indices (USD billions).  Update periodically — these drive the estimated

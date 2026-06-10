@@ -13,6 +13,7 @@ import streamlit as st
 
 from dashboard import analytics, charts, scenarios
 from dashboard.config import (
+    ACTUAL_IPO_VALUATION_B,
     DEFAULT_BENCHMARK,
     DEFAULT_FREE_FLOAT_PCT,
     DEFAULT_LOOKBACK_YEARS,
@@ -92,8 +93,8 @@ with st.sidebar:
     valuation_b = st.select_slider(
         "SpaceX IPO valuation assumption",
         options=IPO_VALUATION_SCENARIOS_B,
-        value=500,
-        format_func=lambda v: f"${v:,}B",
+        value=ACTUAL_IPO_VALUATION_B,
+        format_func=lambda v: f"${v:,}B" + (" (actual)" if v == ACTUAL_IPO_VALUATION_B else ""),
     )
 
     with st.expander("Advanced assumptions"):

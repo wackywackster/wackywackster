@@ -31,6 +31,9 @@ def index_weight_table(valuations_b: list[int], free_float_pct: float) -> pd.Dat
 
 def rank_context(valuation_b: float) -> str:
     """Rough qualitative context for where a valuation would rank."""
+    if valuation_b >= 1500:
+        return ("Top-5 S&P 500 constituent territory on day one — at the actual ~$1.77T "
+                "pricing, SpaceX lists as the largest IPO on record.")
     if valuation_b >= 1000:
         return "Top-10 S&P 500 constituent territory — comparable to Berkshire Hathaway or Tesla."
     if valuation_b >= 500:

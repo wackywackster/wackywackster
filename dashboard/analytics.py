@@ -121,10 +121,16 @@ def split_periods(close: pd.DataFrame, ipo_date: date,
     """
     idx = close.index
     ts = pd.Timestamp(ipo_date)
-    if len(idx) == 0 or ts > idx.max():
+    if len(idx) == 0:
         return {"Pre-IPO": close, "IPO Event": close.iloc[0:0], "Post-IPO": close.iloc[0:0]}
-    pos = int(idx.searchsorted(ts))
-    lo = max(pos - event_window, 0)
+    if ts > idx.max():
+        # IPO is beyond the data: project its trading-day position so the
+        # event window starts filling once we come within `event_window`
+        # sessions of the listing (rather than never, or always).
+        pos = len(idx) - 1 + len(pd.bdate_range(idx.max(), ts)) - 1
+    else:
+        pos = int(idx.searchsorted(ts))
+    lo = max(min(pos - event_window, len(idx)), 0)
     hi = min(pos + event_window + 1, len(idx))
     return {
         "Pre-IPO": close.iloc[:lo],
